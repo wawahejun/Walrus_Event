@@ -18,7 +18,8 @@ class Settings(BaseSettings):
     DEBUG: bool = os.getenv("DEBUG", "true").lower() == "true"
     
     # 数据库配置
-    MONGODB_URL: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017/markov_walrus")
+    POSTGRES_URL: str = os.getenv("POSTGRES_URL", "postgresql+asyncpg://wawahejun:password@localhost/markov_walrus")
+    # MONGODB_URL removed
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
     
     # 安全配置

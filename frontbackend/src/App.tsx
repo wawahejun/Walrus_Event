@@ -121,6 +121,7 @@ export default function App() {
         animate={{ y: calendarOpen ? 0 : '-95%' }}
         transition={{ type: "spring", stiffness: 100, damping: 20 }}
         className="absolute top-0 left-0 right-0 h-2/3 bg-white/95 backdrop-blur-xl z-40 border-b-2 border-amber-200 flex flex-col shadow-2xl"
+        style={{ pointerEvents: calendarOpen ? 'auto' : 'none' }}
       >
         <div className="flex-1 p-8">
           <div className="flex justify-between items-center mb-6">
@@ -198,16 +199,29 @@ export default function App() {
           </div>
         </div>
 
-        {/* Pull Tab */}
-        <div
-          className="h-12 w-full flex items-center justify-center cursor-pointer hover:bg-amber-50 transition-colors border-t-2 border-amber-200"
-          onClick={() => setCalendarOpen(!calendarOpen)}
-        >
-          <ChevronDown
-            className={cn("text-amber-600 transition-transform", calendarOpen ? "rotate-180" : "")}
-          />
-        </div>
+        {/* Pull Tab (only visible while open) */}
+        {calendarOpen && (
+          <div
+            className="h-12 w-full flex items-center justify-center cursor-pointer hover:bg-amber-50 transition-colors border-t-2 border-amber-200"
+            onClick={() => setCalendarOpen(false)}
+          >
+            <ChevronDown className="text-amber-600 transition-transform rotate-180" />
+          </div>
+        )}
       </motion.div>
+
+      {/* Floating toggle button when the calendar is hidden */}
+      <button
+        onClick={() => setCalendarOpen(prev => !prev)}
+        className={cn(
+          "fixed top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 border border-amber-200 shadow-lg text-sm font-semibold text-amber-700 transition-all",
+          calendarOpen ? "opacity-0 pointer-events-none" : "opacity-100"
+        )}
+        aria-label="Toggle global timeline"
+      >
+        <span>Timeline</span>
+        <ChevronDown className="w-4 h-4 text-amber-600" />
+      </button>
 
       {/* Main Content Area */}
       <div className="relative z-10 w-full h-full pt-16">

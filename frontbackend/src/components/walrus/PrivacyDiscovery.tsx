@@ -25,6 +25,150 @@ export interface Activity {
   reviews?: number;
 }
 
+const mockActivityPool: Activity[] = [
+  {
+    id: '1',
+    title: 'Privacy Computing Workshop',
+    description: 'Learn the fundamentals of zero-knowledge proofs and homomorphic encryption to protect your data privacy',
+    image: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
+    category: 'Workshop',
+    date: '2024-01-15',
+    location: 'Virtual Meeting',
+    participants: 45,
+    maxParticipants: 100,
+    tags: ['Privacy Protection', 'Zero-Knowledge Proofs', 'Cryptography'],
+    recommendationScore: 98,
+    time: '14:00-17:00',
+    duration: '3 Hours',
+    organizer: 'CircleSoft Lab'
+  },
+  {
+    id: '2',
+    title: 'Data Sovereignty Seminar',
+    description: 'Explore data ownership and decentralized identity authentication in the Web3 era',
+    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1280&h=720&fit=crop&auto=format&q=80',
+    category: 'Seminar',
+    date: '2024-01-18',
+    location: 'Web3 Hub',
+    participants: 89,
+    maxParticipants: 150,
+    tags: ['Data Sovereignty', 'DID', 'Web3', 'Blockchain'],
+    recommendationScore: 95,
+    time: '19:00-21:00',
+    duration: '2 Hours',
+    organizer: 'Web3 Community'
+  },
+  {
+    id: '3',
+    title: 'Anonymous Voting System Experience',
+    description: 'Experience the application of zero-knowledge proofs in anonymous voting scenarios',
+    image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1280&h=720&fit=crop&auto=format&q=80',
+    category: 'Experience',
+    date: '2024-01-20',
+    location: 'Privacy Computing Lab',
+    participants: 23,
+    maxParticipants: 50,
+    tags: ['Zero-Knowledge Proofs', 'Anonymous Voting', 'Privacy Protection'],
+    recommendationScore: 92,
+    time: '10:00-12:00',
+    duration: '2 Hours',
+    organizer: 'CircleSoft Team'
+  },
+  {
+    id: '4',
+    title: 'Privacy Protection Programming Challenge',
+    description: '24-hour hackathon to develop innovative privacy protection solutions',
+    image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1280&h=720&fit=crop&auto=format&q=80',
+    category: 'Hackathon',
+    date: '2024-01-25',
+    location: 'CircleSoft Headquarters',
+    participants: 156,
+    maxParticipants: 200,
+    tags: ['Programming', 'Challenge', 'Privacy Protection', 'Innovation'],
+    recommendationScore: 90,
+    time: 'All Day',
+    duration: '24 Hours',
+    organizer: 'CircleSoft Dev Team'
+  },
+  {
+    id: '5',
+    title: 'Decentralized Identity Authentication Demo',
+    description: 'Learn about the latest decentralized identity authentication technologies',
+    image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=1280&h=720&fit=crop&auto=format&q=80',
+    category: 'Demo',
+    date: '2024-01-16',
+    location: 'Online Demo',
+    participants: 67,
+    maxParticipants: 80,
+    tags: ['DID', 'Identity Authentication', 'Decentralization', 'Web3'],
+    recommendationScore: 88,
+    time: '15:00-16:30',
+    duration: '1.5 Hours',
+    organizer: 'DID Technical Committee'
+  },
+  {
+    id: '6',
+    title: 'Privacy-Preserving Data Analytics Training',
+    description: 'Learn how to use differential privacy for data analysis while protecting privacy',
+    image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1280&h=720&fit=crop&auto=format&q=80',
+    category: 'Training',
+    date: '2024-01-22',
+    location: 'Online Course',
+    participants: 34,
+    maxParticipants: 60,
+    tags: ['Data Analytics', 'Differential Privacy', 'Privacy Protection', 'Machine Learning'],
+    recommendationScore: 87,
+    time: '20:00-22:00',
+    duration: '2 Hours',
+    organizer: 'Data Privacy Research Institute'
+  },
+  {
+    id: '7',
+    title: 'Web3 Privacy Infrastructure Sharing',
+    description: 'Explore privacy infrastructure in Web3 ecosystem including computing, storage and protocols',
+    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1280&h=720&fit=crop&auto=format&q=80',
+    category: 'Sharing',
+    date: '2024-01-19',
+    location: 'Web3DAO',
+    participants: 78,
+    maxParticipants: 100,
+    tags: ['Web3', 'Privacy Infrastructure', 'Protocols', 'Decentralization'],
+    recommendationScore: 85,
+    time: '18:00-20:00',
+    duration: '2 Hours',
+    organizer: 'Web3DAO Technical Committee'
+  }
+];
+
+const getMockActivities = (): Activity[] => mockActivityPool.map(activity => ({ ...activity }));
+
+const ensureVariedActivities = (baseActivities: Activity[], desiredCount = 9): Activity[] => {
+  const enriched = [...baseActivities];
+  const existingIds = new Set(enriched.map(activity => activity.id));
+  const mockPool = getMockActivities();
+  let poolIndex = 0;
+
+  while (enriched.length < desiredCount && poolIndex < mockPool.length) {
+    const mock = mockPool[poolIndex];
+    let generatedId = mock.id;
+
+    while (existingIds.has(generatedId)) {
+      generatedId = `mock-${mock.id}-${poolIndex}-${Math.random().toString(36).slice(2, 6)}`;
+    }
+
+    existingIds.add(generatedId);
+    enriched.push({
+      ...mock,
+      id: generatedId,
+      recommendationScore: mock.recommendationScore ?? 85 + Math.floor(Math.random() * 15),
+    });
+
+    poolIndex += 1;
+  }
+
+  return enriched;
+};
+
 const PrivacyDiscovery: React.FC = () => {
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [showActivityDetail, setShowActivityDetail] = useState(false);
@@ -38,31 +182,34 @@ const PrivacyDiscovery: React.FC = () => {
         const response = await fetch('http://localhost:8000/api/v1/events?limit=20');
         const data = await response.json();
 
-        if (data.status === 'success' && data.events) {
+        if (data.status === 'success' && data.events && data.events.length > 0) {
           // Transform backend events to Activity format
           const transformedActivities: Activity[] = data.events.map((event: any) => ({
             id: event.event_id,
             title: event.title,
             description: event.description,
-            image: event.cover_image || `https://images.unsplash.com/photo-${Math.random().toString(36).substring(7)}?w=1280&h=720&fit=crop&auto=format&q=80`,
+            image: event.cover_image_path || event.cover_image || `https://images.unsplash.com/photo-${Math.random().toString(36).substring(7)}?w=1280&h=720&fit=crop&auto=format&q=80`,
             category: event.event_type,
             date: new Date(event.start_time).toISOString().split('T')[0],
             location: event.location || 'Virtual',
             participants: event.participants_count,
             maxParticipants: event.max_participants,
-            tags: [event.event_type, 'Privacy', 'Web3'],
+            tags: event.tags || [event.event_type, 'Privacy', 'Web3'],
             recommendationScore: 85 + Math.floor(Math.random() * 15),
             time: new Date(event.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
             duration: '2-3 Hours',
-            organizer: event.organizer_id.substring(0, 10) + '...'
+            organizer: event.organizer_id ? event.organizer_id.substring(0, 10) + '...' : 'Unknown'
           }));
 
-          setActivities(transformedActivities);
+          setActivities(ensureVariedActivities(transformedActivities));
+        } else {
+          // No events from API, use mock data
+          setActivities(ensureVariedActivities(getMockActivities()));
         }
       } catch (error) {
         console.error('Failed to fetch events:', error);
         // Fallback to mock data if API fails
-        setActivities(getMockActivities());
+        setActivities(ensureVariedActivities(getMockActivities()));
       } finally {
         setLoading(false);
       }
@@ -75,123 +222,6 @@ const PrivacyDiscovery: React.FC = () => {
     setSelectedActivity(activity);
     setShowActivityDetail(true);
   };
-
-  // Mock data as fallback
-  const getMockActivities = (): Activity[] => [
-    {
-      id: '1',
-      title: 'Privacy Computing Workshop',
-      description: 'Learn the fundamentals of zero-knowledge proofs and homomorphic encryption to protect your data privacy',
-      image: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
-      category: 'Workshop',
-      date: '2024-01-15',
-      location: 'Virtual Meeting',
-      participants: 45,
-      maxParticipants: 100,
-      tags: ['Privacy Protection', 'Zero-Knowledge Proofs', 'Cryptography'],
-      recommendationScore: 98,
-      time: '14:00-17:00',
-      duration: '3 Hours',
-      organizer: 'CircleSoft Lab'
-    },
-    {
-      id: '2',
-      title: 'Data Sovereignty Seminar',
-      description: 'Explore data ownership and decentralized identity authentication in the Web3 era',
-      image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
-      category: 'Seminar',
-      date: '2024-01-18',
-      location: 'Web3 Hub',
-      participants: 89,
-      maxParticipants: 150,
-      tags: ['Data Sovereignty', 'DID', 'Web3', 'Blockchain'],
-      recommendationScore: 95,
-      time: '19:00-21:00',
-      duration: '2 Hours',
-      organizer: 'Web3 Community'
-    },
-    {
-      id: '3',
-      title: 'Anonymous Voting System Experience',
-      description: 'Experience the application of zero-knowledge proofs in anonymous voting scenarios',
-      image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
-      category: 'Experience',
-      date: '2024-01-20',
-      location: 'Privacy Computing Lab',
-      participants: 23,
-      maxParticipants: 50,
-      tags: ['Zero-Knowledge Proofs', 'Anonymous Voting', 'Privacy Protection'],
-      recommendationScore: 92,
-      time: '10:00-12:00',
-      duration: '2 Hours',
-      organizer: 'CircleSoft Team'
-    },
-    {
-      id: '4',
-      title: 'Privacy Protection Programming Challenge',
-      description: '24-hour hackathon to develop innovative privacy protection solutions',
-      image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
-      category: 'Hackathon',
-      date: '2024-01-25',
-      location: 'CircleSoft Headquarters',
-      participants: 156,
-      maxParticipants: 200,
-      tags: ['Programming', 'Challenge', 'Privacy Protection', 'Innovation'],
-      recommendationScore: 90,
-      time: 'All Day',
-      duration: '24 Hours',
-      organizer: 'CircleSoft Dev Team'
-    },
-    {
-      id: '5',
-      title: 'Decentralized Identity Authentication Demo',
-      description: 'Learn about the latest decentralized identity authentication technologies',
-      image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
-      category: 'Demo',
-      date: '2024-01-16',
-      location: 'Online Demo',
-      participants: 67,
-      maxParticipants: 80,
-      tags: ['DID', 'Identity Authentication', 'Decentralization', 'Web3'],
-      recommendationScore: 88,
-      time: '15:00-16:30',
-      duration: '1.5 Hours',
-      organizer: 'DID Technical Committee'
-    },
-    {
-      id: '6',
-      title: 'Privacy-Preserving Data Analytics Training',
-      description: 'Learn how to use differential privacy for data analysis while protecting privacy',
-      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
-      category: 'Training',
-      date: '2024-01-22',
-      location: 'Online Course',
-      participants: 34,
-      maxParticipants: 60,
-      tags: ['Data Analytics', 'Differential Privacy', 'Privacy Protection', 'Machine Learning'],
-      recommendationScore: 87,
-      time: '20:00-22:00',
-      duration: '2 Hours',
-      organizer: 'Data Privacy Research Institute'
-    },
-    {
-      id: '7',
-      title: 'Web3 Privacy Infrastructure Sharing',
-      description: 'Explore privacy infrastructure in Web3 ecosystem including computing, storage and protocols',
-      image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
-      category: 'Sharing',
-      date: '2024-01-19',
-      location: 'Web3DAO',
-      participants: 78,
-      maxParticipants: 100,
-      tags: ['Web3', 'Privacy Infrastructure', 'Protocols', 'Decentralization'],
-      recommendationScore: 85,
-      time: '18:00-20:00',
-      duration: '2 Hours',
-      organizer: 'Web3DAO Technical Committee'
-    }
-  ];
-
   const recommendedForYou = activities.filter(a => (a.recommendationScore || 0) >= 90);
   const trendingActivities = activities.slice().sort((a, b) => b.participants - a.participants).slice(0, 5);
   const newActivities = activities.slice(-3);

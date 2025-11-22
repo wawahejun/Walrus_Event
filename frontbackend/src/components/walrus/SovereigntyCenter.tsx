@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Database, Activity, Lock, Globe, Wallet, Calendar, MapPin, Users, Edit } from 'lucide-react';
+import { Shield, Database, Activity, Lock, Globe, Wallet, Calendar, MapPin, Users, Edit, Trash2 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { useCurrentAccount, useConnectWallet, useDisconnectWallet } from '@mysten/dapp-kit';
 import { EventDetailModal } from './EventDetailModal';
@@ -14,6 +13,7 @@ interface UserEvent {
   description: string;
   event_type: string;
   start_time: string;
+  end_time: string;
   location: string;
   participants_count: number;
   max_participants: number;
@@ -31,7 +31,9 @@ export const SovereigntyCenter = () => {
   const [editingEvent, setEditingEvent] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  // Fetch user's created events
+  // Fetch user's created events and set up refresh
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
   useEffect(() => {
     if (!account) return;
 
@@ -43,7 +45,7 @@ export const SovereigntyCenter = () => {
         const data = await response.json();
 
         if (data.status === 'success' && data.events) {
-          // For now, show all events since we don't have proper user tracking
+          // For now,show all events since we don't have proper user tracking
           // In production, filter by organizer_id === account.address
           setUserEvents(data.events.slice(0, 5)); // Show latest 5 events
         }
@@ -55,7 +57,31 @@ export const SovereigntyCenter = () => {
     };
 
     fetchUserEvents();
-  }, [account]);
+  }, [account, refreshTrigger]);
+
+  // Delete event handler
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!confirm('Are you sure you want to delete this event?')) return;
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/events/${eventId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organizer_id: 'user_temp' }) // In production, use actual organizer_id
+      });
+
+      const result = await response.json();
+      if (result.status === 'success') {
+        // Refresh event list
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        alert('Failed to delete event: ' + (result.detail || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      alert('Network error occurred while deleting event');
+    }
+  };
 
   // Show connect wallet prompt if not connected
   if (!account) {
@@ -158,7 +184,7 @@ export const SovereigntyCenter = () => {
         </div>
 
         {/* Smart Calendar */}
-        <div className="w-full lg:w-[60%] h-[300px] lg:h-full rounded-2xl bg-amber-50 border border-amber-200 backdrop-blur-md p-6 flex flex-col">
+        <div className="w-full lg:w-[60%] h-[300px] lg:h-full rounded-2xl bg-amber-50 border border-amber-200 backdrop-blur-md p-6 flex flex-col pointer-events-none">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium text-gray-900">Events / November</h3>
             <div className="flex gap-2 text-xs">
@@ -168,8 +194,8 @@ export const SovereigntyCenter = () => {
           </div>
 
           <div className="grid grid-cols-7 gap-1 h-full">
-            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
-              <div key={d} className="text-center text-xs text-gray-600 font-mono py-1">{d}</div>
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, idx) => (
+              <div key={`weekday-${idx}`} className="text-center text-xs text-gray-600 font-mono py-1">{d}</div>
             ))}
             {Array.from({ length: 30 }).map((_, i) => {
               const day = i + 1;
@@ -181,7 +207,7 @@ export const SovereigntyCenter = () => {
                   key={i}
                   whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.1)" }}
                   className={cn(
-                    "relative rounded-lg flex flex-col items-center justify-center transition-colors",
+                    "relative rounded-lg flex flex-col items-center justify-center transition-colors pointer-events-auto",
                     isToday ? "bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/50" : "text-gray-700 hover:text-gray-800"
                   )}
                 >
@@ -233,7 +259,7 @@ export const SovereigntyCenter = () => {
                       id: event.event_id,
                       title: event.title,
                       description: event.description,
-                      image: event.cover_image || `https://images.unsplash.com/photo-${Math.random().toString(36).substring(7)}?w=1280&h=720&fit=crop&auto=format&q=80`,
+                      image: event.cover_image_path || `https://images.unsplash.com/photo-${Math.random().toString(36).substring(7)}?w=1280&h=720&fit=crop&auto=format&q=80`,
                       category: event.event_type,
                       date: new Date(event.start_time).toISOString().split('T')[0],
                       location: event.location || 'Virtual',
@@ -274,19 +300,30 @@ export const SovereigntyCenter = () => {
 
                 <div className="mt-3 pt-3 border-t border-amber-300 flex justify-between items-center">
                   <span className="text-xs text-gray-500 font-mono">{event.event_id.substring(0, 16)}...</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingEvent({
-                        id: event.event_id,
-                        ...event
-                      });
-                      setShowEditModal(true);
-                    }}
-                    className="p-1.5 bg-white text-amber-600 rounded-lg border border-amber-200 hover:bg-amber-50 transition-colors flex items-center gap-1 text-xs font-medium"
-                  >
-                    <Edit size={12} /> Edit
-                  </button>
+                  {/* Action Buttons */}
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingEvent(event);
+                        setShowEditModal(true);
+                      }}
+                      className="p-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors shadow-lg"
+                      title="Edit Event"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteEvent(event.event_id);
+                      }}
+                      className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors shadow-lg"
+                      title="Delete Event"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               </motion.div >
             ))}
@@ -314,7 +351,7 @@ export const SovereigntyCenter = () => {
               if (data.status === 'success' && data.events) {
                 // Filter for current user (mock logic since no real auth yet)
                 // In reality, backend would filter or we filter by wallet address
-                const myEvents = data.events.filter((e: any) => e.organizer_id.startsWith('user_'));
+                const myEvents = data.events.filter((e: any) => e.organizer_id && e.organizer_id.startsWith('user_'));
                 setUserEvents(myEvents);
               }
             } catch (error) {

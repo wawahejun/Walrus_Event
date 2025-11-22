@@ -1,242 +1,212 @@
-# 隐私保护推荐系统
+# Walrus Events: Privacy-Preserving Event Infrastructure for Web3
 
-一个基于马尔科夫链和Walrus存储的隐私保护推荐系统，使用Python和FastAPI构建。
+## 🌟 Vision
 
-## 功能特性
+Walrus Events is building the **event infrastructure for the Web3 era**, providing **privacy-preserving, user-sovereign, and verifiable** event experiences for users!
 
-- 🔒 **隐私保护**: 使用Walrus去中心化存储保护用户数据隐私
-- 🧠 **智能推荐**: 基于马尔科夫链分析用户行为模式
-- 📊 **行为分析**: 深度分析用户行为序列和偏好
-- 🚀 **高性能**: 异步处理，支持高并发请求
-- 🔧 **可扩展**: 模块化设计，易于扩展和维护
-- 📱 **RESTful API**: 完整的API接口支持
+## 🚀 Overview
 
-## 技术栈
+Walrus Events revolutionizes the event industry by putting users in control of their data through decentralized storage, zero-knowledge proofs, and blockchain-based verification. Our platform ensures that users truly own their event data while maintaining privacy and interoperability across platforms.
 
-- **后端框架**: FastAPI (Python)
-- **数据存储**: Walrus 去中心化存储
-- **机器学习**: 马尔科夫链模型
-- **数据处理**: NumPy, Pandas
-- **API文档**: OpenAPI/Swagger
-- **测试框架**: pytest
+## 🔑 Key Features
 
-## 快速开始
+### 🏛️ User Sovereignty
+- **True Data Ownership**: Users control their event data, not platforms
+- **Decentralized Storage**: Data stored on Walrus network with cryptographic proofs
+- **Portable Reputation**: Blockchain-based credentials that work across platforms
 
-### 环境要求
+### 🔒 Privacy Protection
+- **Zero-Knowledge Proofs**: Verify attendance without revealing personal information
+- **End-to-End Encryption**: All user data encrypted before storage
+- **Differential Privacy**: Statistical analysis without compromising individual privacy
 
-- Python 3.8+
-- pip 包管理器
+### 🧠 Intelligent Systems
+- **Markov Chain Analysis**: Model user behavior states to intelligently upgrade reputation levels
+- **Federated Learning**: Personalized recommendations without data collection
+- **Privacy-Preserving Discovery**: Find events that match your interests without exposing your preferences
 
-### 安装依赖
+### ⛓️ Web3 Native
+- **Blockchain Verification**: All credentials and achievements verifiable on-chain
+- **Censorship-Resistant**: Decentralized infrastructure prevents content takedowns
+- **Compliance by Design**: Privacy rules encoded in smart contracts
 
-```bash
-pip install -r requirements.txt
-```
-
-### 启动应用
-
-```bash
-python main.py
-```
-
-应用将在 `http://localhost:8000` 启动。
-
-## API文档
-
-启动应用后，可以访问以下文档：
-
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-- **OpenAPI JSON**: http://localhost:8000/openapi.json
-
-## API端点
-
-### 用户管理
-
-#### 添加用户行为
-```http
-POST /api/v1/users/{user_id}/behaviors
-Content-Type: application/json
-
-{
-  "user_id": "user123",
-  "item_id": "item456",
-  "behavior_type": "VIEW",
-  "timestamp": "2024-01-01T12:00:00Z",
-  "metadata": {"device": "mobile"}
-}
-```
-
-#### 获取用户行为历史
-```http
-GET /api/v1/users/{user_id}/behaviors
-```
-
-#### 获取用户档案
-```http
-GET /api/v1/users/{user_id}/profile
-```
-
-#### 更新用户档案
-```http
-PUT /api/v1/users/{user_id}/profile
-Content-Type: application/json
-
-{
-  "preferences": {"electronics": 10, "books": 5},
-  "privacy_level": 2
-}
-```
-
-### 推荐系统
-
-#### 生成个性化推荐
-```http
-POST /api/v1/recommendations/generate
-Content-Type: application/json
-
-{
-  "user_id": "user123",
-  "num_recommendations": 5,
-  "context": {"device": "mobile", "time_of_day": "evening"}
-}
-```
-
-#### 获取用户推荐
-```http
-GET /api/v1/recommendations/users/{user_id}
-```
-
-#### 获取热门推荐
-```http
-GET /api/v1/recommendations/popular
-```
-
-#### 获取分类推荐
-```http
-GET /api/v1/recommendations/category/{category}
-```
-
-### 数据分析
-
-#### 获取存储统计
-```http
-GET /api/v1/analytics/stats
-```
-
-#### 获取用户分析
-```http
-GET /api/v1/analytics/users/{user_id}
-```
-
-#### 生成数据哈希
-```http
-POST /api/v1/analytics/hash
-Content-Type: application/json
-
-{
-  "user_id": "user123",
-  "behavior": "click",
-  "timestamp": "2024-01-01T12:00:00Z"
-}
-```
-
-## 核心算法
-
-### 马尔科夫链模型
-
-系统使用马尔科夫链分析用户行为序列，预测用户的下一步行为：
-
-1. **状态定义**: 用户行为类型 + 项目ID (如: "VIEW_item123")
-2. **转移矩阵**: 计算状态之间的转移概率
-3. **预测算法**: 基于当前状态序列预测最可能的下一个状态
-
-### 隐私保护机制
-
-1. **数据加密**: 用户数据在存储前进行加密处理
-2. **去中心化存储**: 使用Walrus分布式存储系统
-3. **差分隐私**: 在推荐算法中添加噪声保护用户隐私
-4. **数据最小化**: 只收集和处理必要的数据
-
-### 推荐算法
-
-推荐系统结合多种因素生成个性化推荐：
-
-1. **行为模式**: 基于马尔科夫链预测用户行为
-2. **时间衰减**: 考虑行为的时效性
-3. **用户偏好**: 分析用户历史偏好
-4. **热门程度**: 结合项目的热门程度
-5. **隐私级别**: 根据用户隐私设置调整推荐策略
-
-## 项目结构
+## 🏗️ Architecture
 
 ```
-Markov/
-├── app/
-│   ├── core/           # 核心配置和组件
-│   │   ├── config.py   # 配置管理
-│   │   ├── database.py # 数据库管理
-│   │   └── walrus.py   # Walrus存储集成
-│   ├── models/         # 数据模型
-│   │   └── schemas.py  # Pydantic模型
-│   ├── services/       # 业务逻辑
-│   │   ├── markov_analyzer.py  # 马尔科夫链分析
-│   │   └── recommender.py      # 推荐系统
-│   └── routers/        # API路由
-│       ├── users.py          # 用户管理API
-│       ├── recommendations.py # 推荐API
-│       └── analytics.py      # 分析API
-├── tests/              # 测试文件
-├── main.py            # 应用入口
-└── requirements.txt   # 依赖列表
+┌─────────────────────────────────────────────────────────────┐
+│                    Frontend Layer                            │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ React/Vue + TypeScript + Tailwind CSS              │   │
+│  │ • Client-side encryption                            │   │
+│  │ • ZK proof generation                               │   │
+│  │ • Local preference management                       │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│                    API Layer                                │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ FastAPI + Python                                    │   │
+│  │ • Event discovery API                               │   │
+│  │ • ZK verification service                          │   │
+│  │ • Reputation calculation (Rust - on-chain)         │   │
+│  │ • Seal integration (VDF + mixnet)                  │   │
+│  │ • Event discovery engine (collaborative filtering) │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│                Blockchain Layer (Sui Network)              │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Smart Contracts:                                    │   │
+│  │ • EventOwnership                                   │   │
+│  │ • TicketNFT                                        │   │
+│  │ • ReputationCredential                             │   │
+│  │ • ComplianceBadge                                   │   │
+│  │ • Governance                                       │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│                Storage & Privacy Layer                     │
+│  ┌──────────────┐  ┌─────────────────┐  ┌─────────────┐  │
+│  │   Walrus     │  │  Seal Network    │  │   IPFS      │  │
+│  │ Storage      │  │ (Privacy Layer)  │  │ (Optional)  │  │
+│  │ • Encrypted  │  │ • VDF Protection │  │ • Metadata  │  │
+│  │   Events     │  │ • Mixnet         │  │ • Public    │  │
+│  │ • User Data  │  │ • ZK Acceleration│  │   Resources │  │
+│  │ • Media      │  │                  │  │             │  │
+│  └──────────────┘  └─────────────────┘  └─────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│              Infrastructure Layer                           │
+│  PostgreSQL (Metadata) │ Redis (Cache) │ Kafka (Events)   │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## 测试
+## 🔄 Data Flow Example
 
-运行测试套件：
-
-```bash
-# 运行所有测试
-pytest
-
-# 运行特定测试文件
-pytest tests/test_markov_analyzer.py
-
-# 运行测试并生成覆盖率报告
-pytest --cov=app --cov-report=html
+### Step 1: Organizer Creates Event
+```
+Organizer → Fill Event Form → Client-side Encryption
+                ↓
+        Generate Encrypted Event Object
+                ↓
+        Upload to Walrus
+                ↓
+        Receive Storage Commitment
+                ↓
+        Anchor to Sui Smart Contract
+                ↓
+        Event Creation Complete ✅
 ```
 
-## 性能优化
+### Step 2: User Discovers Events
+```
+User → Local Preferences (Encrypted) → Discovery API
+                ↓
+        Federated Recommendation: Calculate Match Score
+                ↓
+        ZK Proof: "These Events Match My Preferences"
+                ↓
+        Return Encrypted Event List
+                ↓
+        Local Decryption and Display
+```
 
-### 缓存策略
+### Step 3: User Attends Event
+```
+User → Select Event → Pay SUI Tokens
+                ↓
+        Mint Ticket NFT (Soulbound)
+                ↓
+        Generate ZK Attendance Proof
+                ↓
+        Present QR Code at Event
+                ↓
+        Gate Verification of ZK Proof
+                ↓
+        Entry Granted ✅
+```
 
-- **内存缓存**: 热点数据缓存在内存中
-- **LRU缓存**: 使用最近最少使用策略
-- **异步更新**: 后台异步更新缓存
+### Step 4: Reputation Accumulation
+```
+Attendance → System Recording → Update Reputation NFT
+                ↓
+        Add Achievement (Encrypted)
+                ↓
+        Update Merkle Tree Root
+                ↓
+        User Selectively Showcases Achievements
+                ↓
+        Use ZK Proofs for Privileges on Other Platforms
+```
 
-### 并发处理
+## 🔐 Privacy Comparison
 
-- **异步IO**: 使用async/await处理并发请求
-- **连接池**: 数据库连接池管理
-- **限流**: API请求速率限制
+| Traditional Platform | Walrus Events |
+|---------------------|---------------|
+| Platform owns event data | ✅ **User owns data** |
+| Plain text user info | ✅ **End-to-end encryption** |
+| Platform controls verification | ✅ **Zero-knowledge verification** |
+| Reputation locked to platform | ✅ **On-chain verifiable + cross-platform** |
+| Recommendations require data collection | ✅ **Local computation + federated recommendation** |
+| May sell user data | ✅ **Inaccessible (encrypted)** |
+| Opaque compliance | ✅ **On-chain verifiable compliance** |
+| Platform can censor events | ✅ **Censorship-resistant (decentralized)** |
 
-## 安全考虑
+## 💡 Innovations
 
-### 数据保护
+1. **User Data Sovereignty**: First platform where users truly own their event data (not just "can export")
+2. **Markov Chain Reputation Modeling**: Uses Markov chains to analyze user behavior state transitions, intelligently upgrading reputation levels
+3. **Differential Privacy Enhancement**: Adds noise to recommendations and aggregated statistics to prevent reverse engineering of personal data
+4. **Three-Technology Fusion**: Seal + Sui + Walrus for privacy protection, high-performance storage, and verifiable computation
+5. **Zero-Knowledge Event Discovery**: Markov prediction + differential privacy aggregation = personalized recommendations without collecting user data
+6. **Federated Learning Recommendations**: Local computation + global model = privacy-preserving collaborative filtering
+7. **Privacy as Code**: Compliance rules that are programmable, auditable, and governable
+8. **Censorship-Resistant Event Platform**: Decentralized storage + on-chain verification = true freedom of expression
 
-- **加密传输**: 使用HTTPS传输数据
-- **输入验证**: 严格的输入验证和清理
-- **SQL注入防护**: 使用参数化查询
-- **XSS防护**: 输出编码和转义
+## 🎯 Hackathon Advantages
 
-### 访问控制
+| Evaluation Dimension | Our Advantages |
+|---------------------|----------------|
+| Technical Innovation | Four-technology fusion: Seal + Sui + Walrus + ZK, industry-leading |
+| Practicality | Solves real pain points: data sovereignty, privacy, reputation portability |
+| Completeness | 5 complete demo scenarios covering the entire event platform workflow |
+| Web3 Native | Fully decentralized, no single point of failure, censorship-resistant |
+| Privacy Protection | Zero-knowledge proofs protect user privacy while maintaining functionality |
+| Impact | Can change the event platform industry landscape, benefiting millions of users |
 
-- **API认证**: 基于token的API认证
-- **权限管理**: 细粒度的权限控制
-- **审计日志**: 记录重要操作日志
+## 📦 Deliverables
 
+1. ✅ **Runnable MVP System**: FastAPI + Sui + Walrus + Seal integration
+2. ✅ **5 Interactive Demo Scenarios**:
+   - Create privacy-preserving events
+   - Anonymous attendance with ZK verification
+   - On-chain reputation accumulation and cross-platform usage
+   - Personalized recommendations without data collection
+   - GDPR right to be forgotten implementation
+3. ✅ **Sui Move Smart Contracts**: Event ownership, ticket NFTs, reputation credentials, compliance badges
+4. ✅ **Technical Documentation**:
+   - Architecture design document
+   - API documentation (Postman collection)
+   - Deployment guide
+   - Seal integration guide
+5. ✅ **Demo Video** (5 minutes, showcasing all 5 demos)
+6. ✅ **Demo Day Live Presentation**: Real-time creation, attendance, and verification workflow
+7. ✅ **Open Source Code Repository**: Complete GitHub code + documentation
 
-## 许可证
+## 📝 Summary
 
-本项目采用MIT许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+Walrus Events builds a truly user-owned event platform through **decentralized storage**, **zero-knowledge proofs**, **Markov chain analysis**, **differential privacy protection**, and **on-chain verifiable reputation**:
 
+✅ **User Sovereignty**: Users own event data, not platforms
+✅ **Privacy Protection**: Zero-knowledge proofs verify without revealing information
+✅ **Intelligent Reputation**: Markov chains model user behavior states, automatically upgrading reputation levels
+✅ **Private Recommendations**: Differential privacy aggregation + federated learning = personalization without data collection
+✅ **Decentralized**: No single point of failure, censorship-resistant
+✅ **Built-in Compliance**: Privacy as code, automatically enforced
+✅ **Web3 Native**: Fully based on on-chain verification and storage
+
+This platform will become the **event infrastructure for the Web3 era**, providing **privacy-preserving, user-sovereign, and verifiable** event experiences for users!

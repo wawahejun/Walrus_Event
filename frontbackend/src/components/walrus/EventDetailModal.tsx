@@ -22,7 +22,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpe
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
                     />
 
                     {/* Modal */}
@@ -30,7 +30,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpe
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[600px] md:max-h-[80vh] bg-white rounded-2xl shadow-2xl z-50 overflow-hidden"
+                        className="fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[600px] md:max-h-[80vh] bg-white rounded-2xl shadow-2xl z-[9999] overflow-hidden"
                     >
                         {/* Header with Image */}
                         <div className="relative h-48 bg-gradient-to-br from-amber-400 to-orange-500">
@@ -46,7 +46,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpe
                             {/* Close Button */}
                             <button
                                 onClick={onClose}
-                                className="absolute top-4 right-4 p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
+                                className="absolute top-4 right-4 p-2 bg-white/90 rounded-full hover:bg-white transition-colors z-[10000] shadow-lg"
                             >
                                 <X size={20} className="text-gray-800" />
                             </button>

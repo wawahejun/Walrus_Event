@@ -17,7 +17,8 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({ event, isOpen, o
         description: ''
     });
     const [privacyLevel, setPrivacyLevel] = useState(50);
-    const [coverImage, setCoverImage] = useState<string | null>(null);
+    const [coverImageBase64, setCoverImageBase64] = useState<string | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [updating, setUpdating] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -28,7 +29,7 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({ event, isOpen, o
                 location: event.location,
                 description: event.description
             });
-            setCoverImage(event.image || event.cover_image);
+            setCoverImageBase64(event.image || event.cover_image);
             // Map privacy level string to number if needed, or default to 50
             setPrivacyLevel(event.privacy_level === 'zk-private' ? 100 : event.privacy_level === 'public' ? 0 : 50);
         }
@@ -37,15 +38,42 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({ event, isOpen, o
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Validate file size (max 5MB)
             if (file.size > 5 * 1024 * 1024) {
                 setMessage({ type: 'error', text: 'Image size must be less than 5MB' });
                 return;
             }
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setCoverImage(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+
+            // Store file for upload
+            setSelectedFile(file);
+            setCoverImageBase64(null); // Clear old base64 image
+            setMessage({ type: 'success', text: `✅ Image selected: ${file.name} (${Math.round(file.size / 1024)}KB)` });
+        }
+    };
+
+    // Function to upload image and get URL
+    const uploadImage = async (file: File): Promise<string | null> => {
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('http://localhost:8000/api/v1/events/upload-image', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                return result.image_url;
+            } else {
+                setMessage({ type: 'error', text: `Failed to upload image: ${result.detail || 'Unknown error'}` });
+                return null;
+            }
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            setMessage({ type: 'error', text: 'Network error while uploading image' });
+            return null;
         }
     };
 
@@ -56,7 +84,19 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({ event, isOpen, o
         try {
             const privacyLevelMap = privacyLevel === 0 ? 'public' : privacyLevel === 100 ? 'zk-private' : 'hybrid';
 
-            const response = await fetch(`http://localhost:8000/api/v1/events/${event.id}`, {
+            // Upload image first if a new file is selected
+            let coverImagePath: string | null = null;
+            if (selectedFile) {
+                const uploadedUrl = await uploadImage(selectedFile);
+                if (uploadedUrl) {
+                    coverImagePath = uploadedUrl;
+                } else {
+                    setUpdating(false);
+                    return; // Stop if image upload failed
+                }
+            }
+
+            const response = await fetch(`http://localhost:8000/api/v1/events/${event.event_id || event.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -65,7 +105,8 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({ event, isOpen, o
                     description: formData.description,
                     location: formData.location,
                     privacy_level: privacyLevelMap,
-                    cover_image: coverImage
+                    cover_image: coverImageBase64, // Keep existing base64 if present
+                    cover_image_path: coverImagePath
                 })
             });
 
@@ -81,6 +122,7 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({ event, isOpen, o
                 setMessage({ type: 'error', text: result.detail || 'Failed to update event' });
             }
         } catch (error) {
+            console.error('Error updating event:', error);
             setMessage({ type: 'error', text: 'Network error occurred' });
         } finally {
             setUpdating(false);
@@ -149,11 +191,27 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({ event, isOpen, o
                             {/* Image Upload */}
                             <div className="space-y-2">
                                 <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">Cover Image</label>
-                                {coverImage ? (
+                                {selectedFile ? (
                                     <div className="relative group">
-                                        <img src={coverImage} alt="Preview" className="w-full h-48 object-cover rounded-xl border-2 border-amber-200" />
+                                        <div className="w-full h-48 bg-amber-50 border-2 border-amber-200 rounded-xl flex items-center justify-center">
+                                            <div className="text-center">
+                                                <UploadCloud size={32} className="text-amber-400 mx-auto mb-2" />
+                                                <p className="text-sm font-medium text-amber-700">{selectedFile.name}</p>
+                                                <p className="text-xs text-amber-600">{Math.round(selectedFile.size / 1024)}KB</p>
+                                            </div>
+                                        </div>
                                         <button
-                                            onClick={() => setCoverImage(null)}
+                                            onClick={() => setSelectedFile(null)}
+                                            className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                ) : coverImageBase64 ? (
+                                    <div className="relative group">
+                                        <img src={coverImageBase64} alt="Preview" className="w-full h-48 object-cover rounded-xl border-2 border-amber-200" />
+                                        <button
+                                            onClick={() => setCoverImageBase64(null)}
                                             className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
                                             <X size={16} />

@@ -8,11 +8,15 @@ export const EventForge = () => {
   const [formData, setFormData] = useState({
     title: '',
     location: '',
-    description: ''
+    description: '',
+    start_time: '',
+    end_time: '',
+    tags: [] as string[]
   });
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string, eventId?: string } | null>(null);
-  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [tagInput, setTagInput] = useState('');
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -23,12 +27,35 @@ export const EventForge = () => {
         return;
       }
 
-      // Convert to base64
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCoverImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      // Store file for upload
+      setSelectedFile(file);
+      setMessage({ type: 'success', text: `✅ Image selected: ${file.name} (${Math.round(file.size / 1024)}KB)` });
+    }
+  };
+
+  // Function to upload image and get URL
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('http://localhost:8000/api/v1/events/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.status === 'success') {
+        return result.image_url;
+      } else {
+        setMessage({ type: 'error', text: `Failed to upload image: ${result.detail || 'Unknown error'}` });
+        return null;
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setMessage({ type: 'error', text: 'Network error while uploading image' });
+      return null;
     }
   };
 
@@ -46,6 +73,26 @@ export const EventForge = () => {
       // Determine privacy level
       const privacyLevelMap = privacyLevel < 33 ? 'public' : privacyLevel < 66 ? 'hybrid' : 'zk-private';
 
+      // Upload image first if selected
+      let coverImagePath = null;
+      if (selectedFile) {
+        const uploadedUrl = await uploadImage(selectedFile);
+        if (uploadedUrl) {
+          coverImagePath = uploadedUrl;
+        } else {
+          setCreating(false);
+          return; // Stop if image upload failed
+        }
+      }
+
+      // Helper function to convert datetime-local to timezone-naive ISO string
+      const toNaiveDatetime = (dateTimeLocal: string) => {
+        if (!dateTimeLocal) return null;
+        // datetime-local format: "2025-09-22T18:20"
+        // We need to convert to: "2025-09-22T18:20:00" (no timezone)
+        return dateTimeLocal + ':00';
+      };
+
       // Create event
       const response = await fetch('http://localhost:8000/api/v1/events/create', {
         method: 'POST',
@@ -55,13 +102,14 @@ export const EventForge = () => {
           title: formData.title,
           description: formData.description,
           event_type: 'Meetup',
-          start_time: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
-          end_time: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(), // +2 hours
+          start_time: formData.start_time ? toNaiveDatetime(formData.start_time) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19),
+          end_time: formData.end_time ? toNaiveDatetime(formData.end_time) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString().slice(0, 19),
           location: formData.location || 'Virtual',
           max_participants: 100,
           privacy_level: privacyLevelMap,
           store_to_walrus: true,
-          cover_image: coverImage // Include image
+          cover_image_path: coverImagePath,
+          tags: formData.tags
         })
       });
 
@@ -70,14 +118,15 @@ export const EventForge = () => {
       if (result.status === 'success') {
         setMessage({
           type: 'success',
-          text: `✅ Event "${formData.title}" created successfully!\nBlob ID: ${result.walrus_storage?.blob_id || 'N/A'}\n\nGo to Privacy Discovery to see your event!`,
+          text: `✅ Event "${formData.title}" created successfully!\nBlob ID: ${result.walrus_storage?.blob_id || 'N/A'}\n\nImage: ${coverImagePath || 'None'}\n\nGo to Privacy Discovery to see your event!`,
           eventId: result.event_id
         });
         // Clear form
-        setFormData({ title: '', location: '', description: '' });
-        setCoverImage(null);
+        setFormData({ title: '', location: '', description: '', start_time: '', end_time: '', tags: [] });
+        setSelectedFile(null);
+        setTagInput('');
       } else {
-        setMessage({ type: 'error', text: 'Failed to create event' });
+        setMessage({ type: 'error', text: result.detail || 'Failed to create event' });
       }
     } catch (error) {
       console.error('Error creating event:', error);
@@ -127,18 +176,97 @@ export const EventForge = () => {
             </div>
           </div>
 
+          {/* Start Time */}
+          <div className="space-y-2">
+            <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">Start Time</label>
+            <input
+              type="datetime-local"
+              lang="en-US"
+              className="w-full bg-white/80 border border-amber-200 rounded-xl p-3 text-sm focus:outline-none focus:border-[#F59E0B]/50 transition-colors shadow-sm"
+              value={formData.start_time}
+              onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+            />
+          </div>
+
+          {/* End Time */}
+          <div className="space-y-2">
+            <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">End Time</label>
+            <input
+              type="datetime-local"
+              lang="en-US"
+              className="w-full bg-white/80 border border-amber-200 rounded-xl p-3 text-sm focus:outline-none focus:border-[#F59E0B]/50 transition-colors shadow-sm"
+              value={formData.end_time}
+              onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+            />
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-2">
+            <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">Tags</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                className="flex-1 bg-white/80 border border-amber-200 rounded-xl p-3 text-sm focus:outline-none focus:border-[#F59E0B]/50 transition-colors shadow-sm"
+                placeholder="Add a tag..."
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && tagInput.trim()) {
+                    e.preventDefault();
+                    if (!formData.tags.includes(tagInput.trim())) {
+                      setFormData({ ...formData, tags: [...formData.tags, tagInput.trim()] });
+                    }
+                    setTagInput('');
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+                    setFormData({ ...formData, tags: [...formData.tags, tagInput.trim()] });
+                    setTagInput('');
+                  }
+                }}
+                className="px-4 py-2 bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition-colors text-sm font-medium"
+              >
+                Add
+              </button>
+            </div>
+            {formData.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.tags.map((tag, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs flex items-center gap-2"
+                  >
+                    {tag}
+                    <button
+                      onClick={() => setFormData({ ...formData, tags: formData.tags.filter((_, idx) => idx !== i) })}
+                      className="hover:text-red-600"
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Cover Image Upload */}
           <div className="space-y-2">
             <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">Cover Image (Optional)</label>
-            {coverImage ? (
+            {selectedFile ? (
               <div className="relative group">
-                <img
-                  src={coverImage}
-                  alt="Cover preview"
-                  className="w-full h-48 object-cover rounded-xl border-2 border-amber-200"
-                />
+                <div className="w-full h-48 bg-amber-50 border-2 border-amber-200 rounded-xl flex items-center justify-center">
+                  <div className="text-center">
+                    <UploadCloud size={32} className="text-amber-400 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-amber-700">{selectedFile.name}</p>
+                    <p className="text-xs text-amber-600">{Math.round(selectedFile.size / 1024)}KB</p>
+                  </div>
+                </div>
                 <button
-                  onClick={() => setCoverImage(null)}
+                  onClick={() => setSelectedFile(null)}
                   className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <X size={16} />
@@ -234,6 +362,15 @@ export const EventForge = () => {
             <PreviewItem label="TITLE" value={formData.title} secure={privacyLevel > 0} />
             <PreviewItem label="LOCATION" value={formData.location} secure={privacyLevel > 0} />
             <PreviewItem label="METADATA" value={formData.description} secure={privacyLevel > 50} multiline />
+
+            {selectedFile && (
+              <div className="space-y-1">
+                <div className="text-gray-700 text-[10px]">COVER IMAGE</div>
+                <div className="text-green-600">
+                  {selectedFile.name} ({Math.round(selectedFile.size / 1024)}KB)
+                </div>
+              </div>
+            )}
 
             <div className="mt-8 pt-4 border-t border-amber-200">
               <div className="flex items-center justify-between text-gray-700 mb-2">
