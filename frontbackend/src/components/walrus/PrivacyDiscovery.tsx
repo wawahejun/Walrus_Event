@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ParallaxScrollSecond } from '../ui/parallax-scroll';
 import { ArrowRight, Users, Calendar, MapPin, Clock, Sparkles, TrendingUp, ClockIcon } from 'lucide-react';
+import { EventDetailModal } from './EventDetailModal';
 
 export interface Activity {
   id: string;
@@ -27,8 +28,56 @@ export interface Activity {
 const PrivacyDiscovery: React.FC = () => {
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [showActivityDetail, setShowActivityDetail] = useState(false);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const activities: Activity[] = [
+  // Fetch events from backend API
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/v1/events?limit=20');
+        const data = await response.json();
+
+        if (data.status === 'success' && data.events) {
+          // Transform backend events to Activity format
+          const transformedActivities: Activity[] = data.events.map((event: any) => ({
+            id: event.event_id,
+            title: event.title,
+            description: event.description,
+            image: event.cover_image || `https://images.unsplash.com/photo-${Math.random().toString(36).substring(7)}?w=1280&h=720&fit=crop&auto=format&q=80`,
+            category: event.event_type,
+            date: new Date(event.start_time).toISOString().split('T')[0],
+            location: event.location || 'Virtual',
+            participants: event.participants_count,
+            maxParticipants: event.max_participants,
+            tags: [event.event_type, 'Privacy', 'Web3'],
+            recommendationScore: 85 + Math.floor(Math.random() * 15),
+            time: new Date(event.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            duration: '2-3 Hours',
+            organizer: event.organizer_id.substring(0, 10) + '...'
+          }));
+
+          setActivities(transformedActivities);
+        }
+      } catch (error) {
+        console.error('Failed to fetch events:', error);
+        // Fallback to mock data if API fails
+        setActivities(getMockActivities());
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  const handleActivityClick = (activity: Activity) => {
+    setSelectedActivity(activity);
+    setShowActivityDetail(true);
+  };
+
+  // Mock data as fallback
+  const getMockActivities = (): Activity[] => [
     {
       id: '1',
       title: 'Privacy Computing Workshop',
@@ -148,20 +197,12 @@ const PrivacyDiscovery: React.FC = () => {
   const newActivities = activities.slice(-3);
   const popularInArea = activities.filter(a => a.tags.includes('Web3') || a.tags.includes('隐私保护')).slice(0, 4);
 
-  const handleActivityClick = (activity: Activity) => {
-    setSelectedActivity(activity);
-    setShowActivityDetail(true);
-  };
+
 
   const closeActivityDetail = () => {
     setShowActivityDetail(false);
     setSelectedActivity(null);
   };
-
-  const zoomParallaxImages = recommendedForYou.map((activity, index) => ({
-    src: activity.image,
-    alt: activity.title
-  }));
 
   const parallaxScrollImages = newActivities.map((activity, index) =>
     activity.image
@@ -191,7 +232,7 @@ const PrivacyDiscovery: React.FC = () => {
           className="mb-8 flex items-center justify-center gap-2 text-amber-600"
         >
           <Sparkles className="w-6 h-6" />
-          <span className="text-lg font-medium">基于你的兴趣智能推荐</span>
+          <span className="text-lg font-medium">Smart recommendations based on your interests</span>
         </motion.div>
 
         <section className="mb-16">
@@ -274,9 +315,9 @@ const PrivacyDiscovery: React.FC = () => {
                 <TrendingUp className="w-6 h-6 text-amber-600" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-800 mb-1">智能推荐算法</h3>
-                <p className="text-gray-600">
-                  基于你的兴趣、参与历史和行为数据，为你精准推荐最相关的活动
+                <h3 className="text-lg font-bold text-gray-800 mb-1">Smart Recommendation Algorithm</h3>
+                <p className="text-gray-800">
+                  Precisely recommend the most relevant activities based on your interests, participation history, and behavioral data
                 </p>
               </div>
             </div>
@@ -288,9 +329,9 @@ const PrivacyDiscovery: React.FC = () => {
                 <ClockIcon className="w-6 h-6 text-orange-600" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-800 mb-1">实时更新</h3>
-                <p className="text-gray-600">
-                  推荐结果根据你的最新互动实时调整，确保你总能发现最新最热的活动
+                <h3 className="text-lg font-bold text-gray-800 mb-1">Real-time Updates</h3>
+                <p className="text-gray-800">
+                  Recommendation results adjust in real-time based on your latest interactions, ensuring you always discover the newest and hottest activities
                 </p>
               </div>
             </div>
@@ -352,7 +393,7 @@ const PrivacyDiscovery: React.FC = () => {
                       className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
                     />
                     <div className="absolute top-4 right-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                      热门
+                      Trending
                     </div>
                   </div>
                   <div className="p-6">
@@ -418,7 +459,7 @@ const PrivacyDiscovery: React.FC = () => {
                   </div>
                   <div className="md:w-2/3 p-4">
                     <h3 className="text-lg font-bold text-gray-800 mb-2">{activity.title}</h3>
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">{activity.description}</p>
+                    <p className="text-gray-800 text-sm mb-3 line-clamp-2">{activity.description}</p>
                     <div className="flex flex-wrap gap-1 mb-3">
                       {activity.tags.slice(0, 3).map(tag => (
                         <span key={tag} className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
@@ -427,7 +468,7 @@ const PrivacyDiscovery: React.FC = () => {
                       ))}
                     </div>
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 text-sm text-gray-500">
+                      <div className="flex items-center gap-3 text-sm text-gray-700">
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
                           <span>{activity.time}</span>
@@ -486,7 +527,7 @@ const PrivacyDiscovery: React.FC = () => {
                 <h3 className="text-3xl font-bold text-gray-800 mb-2">
                   {selectedActivity.title}
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-gray-800 mb-4">
                   {selectedActivity.description}
                 </p>
               </div>
@@ -512,7 +553,7 @@ const PrivacyDiscovery: React.FC = () => {
 
               <div className="mb-6">
                 <h4 className="font-bold text-gray-800 mb-2">Organizer:</h4>
-                <p className="text-gray-600">{selectedActivity.organizer}</p>
+                <p className="text-gray-800">{selectedActivity.organizer}</p>
               </div>
 
               <div className="mb-6">
@@ -543,8 +584,15 @@ const PrivacyDiscovery: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Event Detail Modal - New Component */}
+      <EventDetailModal
+        event={selectedActivity}
+        isOpen={showActivityDetail}
+        onClose={() => setShowActivityDetail(false)}
+      />
     </div>
   );
 };
 
-export { PrivacyDiscovery };
+export default PrivacyDiscovery;

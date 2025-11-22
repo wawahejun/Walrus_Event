@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Lock, Unlock, Eye, Save, Calendar, MapPin, Type, UploadCloud } from 'lucide-react';
+import { Lock, Unlock, Eye, Save, Calendar, MapPin, Type, UploadCloud, X } from 'lucide-react';
 import { cn } from '../ui/utils';
 
 export const EventForge = () => {
@@ -10,6 +10,82 @@ export const EventForge = () => {
     location: '',
     description: ''
   });
+  const [creating, setCreating] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string, eventId?: string } | null>(null);
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setMessage({ type: 'error', text: 'Image size must be less than 5MB' });
+        return;
+      }
+
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCreateEvent = async () => {
+    // Validation
+    if (!formData.title || !formData.description) {
+      setMessage({ type: 'error', text: 'Please fill in title and description' });
+      return;
+    }
+
+    setCreating(true);
+    setMessage(null);
+
+    try {
+      // Determine privacy level
+      const privacyLevelMap = privacyLevel < 33 ? 'public' : privacyLevel < 66 ? 'hybrid' : 'zk-private';
+
+      // Create event
+      const response = await fetch('http://localhost:8000/api/v1/events/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizer_id: 'user_' + Date.now(), // Replace with actual wallet address
+          title: formData.title,
+          description: formData.description,
+          event_type: 'Meetup',
+          start_time: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+          end_time: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(), // +2 hours
+          location: formData.location || 'Virtual',
+          max_participants: 100,
+          privacy_level: privacyLevelMap,
+          store_to_walrus: true,
+          cover_image: coverImage // Include image
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.status === 'success') {
+        setMessage({
+          type: 'success',
+          text: `✅ Event "${formData.title}" created successfully!\nBlob ID: ${result.walrus_storage?.blob_id || 'N/A'}\n\nGo to Privacy Discovery to see your event!`,
+          eventId: result.event_id
+        });
+        // Clear form
+        setFormData({ title: '', location: '', description: '' });
+        setCoverImage(null);
+      } else {
+        setMessage({ type: 'error', text: 'Failed to create event' });
+      }
+    } catch (error) {
+      console.error('Error creating event:', error);
+      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+    } finally {
+      setCreating(false);
+    }
+  };
 
   return (
     <div className="h-full w-full p-4 md:p-8 flex flex-col lg:flex-row gap-8 text-gray-800 pb-24 overflow-y-auto no-scrollbar bg-gradient-to-br from-orange-50/60 via-amber-50/70 to-yellow-50/50">
@@ -18,7 +94,7 @@ export const EventForge = () => {
       <div className="flex-1 flex flex-col gap-6">
         <div className="mb-2">
           <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-600">EVENT FORGE</h1>
-          <p className="text-sm text-gray-600">Create Sovereign Events</p>
+          <p className="text-sm text-gray-800">Create Sovereign Events</p>
         </div>
 
         <div className="space-y-5">
@@ -37,7 +113,7 @@ export const EventForge = () => {
             privacyLevel={privacyLevel}
           />
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-wider text-gray-600 ml-1">Description</label>
+            <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">Description</label>
             <div className="relative group">
               <textarea
                 className="w-full h-32 bg-white/80 border border-amber-200 rounded-xl p-4 text-sm focus:outline-none focus:border-[#F59E0B]/50 transition-colors resize-none shadow-sm"
@@ -49,6 +125,40 @@ export const EventForge = () => {
                 {privacyLevel > 0 ? <Lock size={14} className="text-[#F59E0B]" /> : <Unlock size={14} className="text-gray-400" />}
               </div>
             </div>
+          </div>
+
+          {/* Cover Image Upload */}
+          <div className="space-y-2">
+            <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">Cover Image (Optional)</label>
+            {coverImage ? (
+              <div className="relative group">
+                <img
+                  src={coverImage}
+                  alt="Cover preview"
+                  className="w-full h-48 object-cover rounded-xl border-2 border-amber-200"
+                />
+                <button
+                  onClick={() => setCoverImage(null)}
+                  className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <label className="block cursor-pointer">
+                <div className="w-full h-32 bg-white/80 border-2 border-dashed border-amber-200 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-amber-400 hover:bg-amber-50/50 transition-all">
+                  <UploadCloud size={32} className="text-amber-400" />
+                  <span className="text-sm text-gray-600">Click to upload image</span>
+                  <span className="text-xs text-gray-500">Max 5MB</span>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label>
+            )}
           </div>
 
           {/* Privacy Slider */}
@@ -73,23 +183,43 @@ export const EventForge = () => {
               onChange={(e) => setPrivacyLevel(parseInt(e.target.value))}
               className="w-full h-2 bg-amber-100/50 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#F59E0B]"
             />
-            <div className="flex justify-between text-[10px] text-gray-400 mt-2 uppercase tracking-wide">
+            <div className="flex justify-between text-[10px] text-gray-700 mt-2 uppercase tracking-wide">
               <span>Public on Chain</span>
               <span>Mixed Metadata</span>
               <span>Full Zero-Knowledge</span>
             </div>
           </div>
 
-          <button className="w-full py-4 rounded-xl bg-gradient-to-r from-[#F59E0B] to-yellow-600 font-bold text-white shadow-[0_4px_20px_rgba(245,158,11,0.25)] hover:shadow-[0_0_30px_rgba(245,158,11,0.5)] transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+          {/* Success/Error Message */}
+          {message && (
+            <div className={`p-4 rounded-xl ${message.type === 'success'
+              ? 'bg-green-50 border border-green-200 text-green-800'
+              : 'bg-red-50 border border-red-200 text-red-800'
+              }`}>
+              <div className="text-sm font-medium mb-2 whitespace-pre-line">{message.text}</div>
+              {message.type === 'success' && message.eventId && (
+                <div className="mt-3 pt-3 border-t border-green-300">
+                  <p className="text-xs text-green-700 mb-2">Event ID: {message.eventId}</p>
+                  <p className="text-xs text-green-600 italic">💡 Go to Privacy Discovery tab to see your event!</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <button
+            onClick={handleCreateEvent}
+            disabled={creating}
+            className="w-full py-4 rounded-xl bg-gradient-to-r from-[#F59E0B] to-yellow-600 font-bold text-white shadow-[0_4px_20px_rgba(245,158,11,0.25)] hover:shadow-[0_0_30px_rgba(245,158,11,0.5)] transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <UploadCloud size={18} />
-            <span>FORGE & SEAL ON WALRUS</span>
+            <span>{creating ? 'CREATING...' : 'FORGE & SEAL ON WALRUS'}</span>
           </button>
         </div>
       </div>
 
       {/* Right: Real-time Preview */}
       <div className="w-full lg:w-[400px] flex flex-col gap-4">
-        <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wider">Walrus Storage Preview</h3>
+        <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Walrus Storage Preview</h3>
 
         <div className="flex-1 bg-white/80 rounded-xl border border-amber-200 p-6 font-mono text-xs overflow-hidden relative shadow-lg">
           {/* Background Grid */}
@@ -106,7 +236,7 @@ export const EventForge = () => {
             <PreviewItem label="METADATA" value={formData.description} secure={privacyLevel > 50} multiline />
 
             <div className="mt-8 pt-4 border-t border-amber-200">
-              <div className="flex items-center justify-between text-gray-500 mb-2">
+              <div className="flex items-center justify-between text-gray-700 mb-2">
                 <span>Shards Distribution</span>
                 <span>3/5 Nodes</span>
               </div>
@@ -126,7 +256,7 @@ export const EventForge = () => {
 const EncryptedInput = ({ label, icon: Icon, value, onChange, privacyLevel }: any) => {
   return (
     <div className="space-y-2">
-      <label className="text-xs uppercase tracking-wider text-gray-600 ml-1 flex items-center justify-between">
+      <label className="text-xs uppercase tracking-wider text-gray-700 ml-1 flex items-center justify-between">
         <span>{label}</span>
         {privacyLevel > 0 && <Lock size={10} className="text-[#F59E0B] animate-pulse" />}
       </label>
@@ -152,12 +282,12 @@ const PreviewItem = ({ label, value, secure, multiline }: any) => {
 
   return (
     <div className="space-y-1">
-      <div className="text-gray-500 text-[10px]">{label}</div>
+      <div className="text-gray-700 text-[10px]">{label}</div>
       <div className={cn(
         "break-all transition-all duration-500",
         secure ? "text-[#F59E0B] blur-[0.5px]" : "text-gray-800"
       )}>
-        {secure ? (value ? hash : <span className="opacity-20">waiting_for_input...</span>) : (value || <span className="opacity-20">waiting_for_input...</span>)}
+        {secure ? (value ? hash : <span className="opacity-50 text-gray-600">waiting_for_input...</span>) : (value || <span className="opacity-50 text-gray-600">waiting_for_input...</span>)}
       </div>
     </div>
   )

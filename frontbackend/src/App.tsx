@@ -4,12 +4,13 @@ import { ChevronDown } from 'lucide-react';
 import { FloatingNav } from './components/walrus/FloatingNav';
 import { HomePage } from './components/walrus/HomePage';
 import { SovereigntyCenter } from './components/walrus/SovereigntyCenter';
-import { PrivacyDiscovery } from './components/walrus/PrivacyDiscovery';
+import PrivacyDiscovery from './components/walrus/PrivacyDiscovery';
 import { EventForge } from './components/walrus/EventForge';
 import { ZKEntry } from './components/walrus/ZKEntry';
 import { ReputationSystem } from './components/walrus/ReputationSystem';
 import { GovernanceHall } from './components/walrus/GovernanceHall';
 import { cn } from './components/ui/utils';
+import { WalletButton } from './components/wallet/wallet-button';
 
 // Background Particles Component
 const StarField = () => {
@@ -59,6 +60,41 @@ const StarField = () => {
 export default function App() {
   const [activePage, setActivePage] = useState('discovery');
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth()); // 0-11
+
+  // Get number of days in selected month
+  const getDaysInMonth = (year: number, month: number) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  // Get first day of month (0 = Sunday, 1 = Monday, etc.)
+  const getFirstDayOfMonth = (year: number, month: number) => {
+    return new Date(year, month, 1).getDay();
+  };
+
+  const daysInMonth = getDaysInMonth(selectedYear, selectedMonth);
+  const firstDayOfMonth = getFirstDayOfMonth(selectedYear, selectedMonth);
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+
+  const handlePreviousMonth = () => {
+    if (selectedMonth === 0) {
+      setSelectedMonth(11);
+      setSelectedYear(selectedYear - 1);
+    } else {
+      setSelectedMonth(selectedMonth - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 11) {
+      setSelectedMonth(0);
+      setSelectedYear(selectedYear + 1);
+    } else {
+      setSelectedMonth(selectedMonth + 1);
+    }
+  };
 
   const renderPage = () => {
     switch (activePage) {
@@ -87,19 +123,78 @@ export default function App() {
         className="absolute top-0 left-0 right-0 h-2/3 bg-white/95 backdrop-blur-xl z-40 border-b-2 border-amber-200 flex flex-col shadow-2xl"
       >
         <div className="flex-1 p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">Global Timeline</h2>
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-4">
+              <h2 className="text-2xl font-bold text-gray-800">Global Timeline</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePreviousMonth}
+                  className="p-1 hover:bg-amber-100 rounded transition-colors"
+                  aria-label="Previous month"
+                >
+                  <ChevronDown className="w-5 h-5 text-amber-600 rotate-90" />
+                </button>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                    className="px-3 py-1 border border-amber-200 rounded-lg bg-white text-sm font-medium text-gray-800 focus:outline-none focus:border-amber-400"
+                  >
+                    {monthNames.map((month, index) => (
+                      <option key={index} value={index}>{month}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    className="px-3 py-1 border border-amber-200 rounded-lg bg-white text-sm font-medium text-gray-800 focus:outline-none focus:border-amber-400"
+                  >
+                    {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={handleNextMonth}
+                  className="p-1 hover:bg-amber-100 rounded transition-colors"
+                  aria-label="Next month"
+                >
+                  <ChevronDown className="w-5 h-5 text-amber-600 -rotate-90" />
+                </button>
+              </div>
+            </div>
+            <WalletButton />
+          </div>
           <div className="grid grid-cols-7 gap-4 h-full pb-12">
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
               <div key={d} className="text-center text-gray-500 uppercase tracking-widest text-xs font-medium">{d}</div>
             ))}
-            {Array.from({ length: 35 }).map((_, i) => (
-              <div key={i} className="border-2 border-amber-100 rounded-lg p-2 hover:bg-amber-50 transition-colors relative bg-white">
-                <span className="text-xs text-gray-600">{i + 1}</span>
-                {[5, 12, 18, 24].includes(i + 1) && (
-                  <div className="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_5px_rgba(245,158,11,0.6)]" />
-                )}
-              </div>
+            {/* Empty cells for days before month starts */}
+            {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+              <div key={`empty-${i}`} className=""></div>
             ))}
+            {/* Actual days of the month */}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1;
+              const today = new Date();
+              const isToday = day === today.getDate() &&
+                selectedMonth === today.getMonth() &&
+                selectedYear === today.getFullYear();
+              const hasEvent = [5, 12, 18, 24].includes(day);
+
+              return (
+                <div
+                  key={day}
+                  className={`border-2 rounded-lg p-2 hover:bg-amber-50 transition-colors relative bg-white ${isToday ? 'border-amber-400 bg-amber-50' : 'border-amber-100'
+                    }`}
+                >
+                  <span className={`text-xs ${isToday ? 'text-amber-600 font-bold' : 'text-gray-600'}`}>{day}</span>
+                  {hasEvent && (
+                    <div className="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_5px_rgba(245,158,11,0.6)]" />
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
