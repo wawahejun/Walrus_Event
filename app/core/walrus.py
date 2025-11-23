@@ -18,6 +18,9 @@ class WalrusStorage:
     
     def __init__(self):
         self.storage_node = settings.WALRUS_STORAGE_NODE
+        self.publisher_url = settings.WALRUS_PUBLISHER_URL
+        self.aggregator_url = settings.WALRUS_AGGREGATOR_URL
+        self.api_token = settings.WALRUS_API_TOKEN
         self.rpc_url = settings.WALRUS_RPC_URL
         self.contract_address = settings.WALRUS_CONTRACT_ADDRESS
         # 生成有效的Fernet密钥
@@ -26,8 +29,8 @@ class WalrusStorage:
         self.cipher = Fernet(key_base32)
         self.model_cache = {}  # 本地模型缓存
         self.storage_nodes = [
-            "https://walrus-testnet.storage.googleapis.com",
-            "https://walrus-testnet-2.storage.googleapis.com"
+            settings.WALRUS_PUBLISHER_URL,
+            settings.WALRUS_AGGREGATOR_URL
         ]
     
     async def store_data(self, data: Dict[str, Any], encrypt: bool = True) -> str:
@@ -39,70 +42,76 @@ class WalrusStorage:
             encrypt: 是否加密数据
             
         Returns:
-            存储哈希值
+            Walrus blob ID
         """
         try:
             # 数据预处理
             processed_data = self._prepare_data(data, encrypt)
             
-            # 创建存储请求
-            storage_request = {
-                "data": processed_data,
-                "timestamp": datetime.utcnow().isoformat(),
-                "metadata": {
-                    "app": settings.APP_NAME,
-                    "version": settings.APP_VERSION,
-                    "encrypted": encrypt
-                }
-            }
-            
-            # 发送到 Walrus 网络
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{self.storage_node}/store",
-                    json=storage_request,
-                    timeout=30.0
+            # 使用Walrus HTTP API上传
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                # Walrus接受原始数据，不使用multipart form
+                headers = {}
+                if self.api_token:
+                    headers['Authorization'] = f'Bearer {self.api_token}'
+                
+                # 调用Walrus Publisher API (正确的端点是 /v1/blobs)
+                # 添加epochs参数指定存储时长（默认5个epochs）
+                response = await client.put(
+                    f"{self.publisher_url}/v1/blobs?epochs=5",
+                    content=processed_data.encode(),
+                    headers=headers
                 )
                 
-                if response.status_code == 200:
+                if response.status_code in [200, 201]:
                     result = response.json()
-                    storage_hash = result.get("hash")
-                    logger.info(f"Data stored successfully with hash: {storage_hash}")
-                    return storage_hash
+                    
+                    # Walrus返回的blob_id格式
+                    if 'newlyCreated' in result:
+                        blob_info = result['newlyCreated']
+                        blob_id = blob_info['blobObject']['blobId']
+                    elif 'alreadyCertified' in result:
+                        blob_info = result['alreadyCertified']
+                        blob_id = blob_info['blobObject']['blobId']
+                    else:
+                        raise Exception(f"Unexpected response format: {result}")
+                    
+                    logger.info(f"Data stored successfully to Walrus. Blob ID: {blob_id}")
+                    return blob_id
                 else:
-                    raise Exception(f"Storage failed: {response.text}")
+                    raise Exception(f"Walrus storage failed: HTTP {response.status_code} - {response.text}")
                     
         except Exception as e:
             logger.error(f"Error storing data to Walrus: {e}")
             raise
             
-    async def retrieve_data(self, storage_hash: str, decrypt: bool = True) -> Dict[str, Any]:
+    async def retrieve_data(self, blob_id: str, decrypt: bool = True) -> Dict[str, Any]:
         """
         从 Walrus 检索数据
         
         Args:
-            storage_hash: 存储哈希值
+            blob_id: Walrus blob ID
             decrypt: 是否解密数据
             
         Returns:
             检索到的数据
         """
         try:
-            # 从 Walrus 网络检索
-            async with httpx.AsyncClient() as client:
+            # 从 Walrus Aggregator API检索
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                # 正确的端点是 /v1/blobs/{blob_id}
                 response = await client.get(
-                    f"{self.storage_node}/retrieve/{storage_hash}",
-                    timeout=30.0
+                    f"{self.aggregator_url}/v1/blobs/{blob_id}"
                 )
                 
                 if response.status_code == 200:
-                    result = response.json()
-                    data = result.get("data")
+                    # Walrus返回原始数据(二进制)
+                    raw_data = response.text
                     
                     # 数据后处理
-                    return self._process_retrieved_data(data, decrypt)
+                    return self._process_retrieved_data(raw_data, decrypt)
                 else:
-                    raise Exception(f"Retrieval failed: {response.text}")
+                    raise Exception(f"Walrus retrieval failed: HTTP {response.status_code} - {response.text}")
                     
         except Exception as e:
             logger.error(f"Error retrieving data from Walrus: {e}")

@@ -7,10 +7,15 @@ class Settings(BaseSettings):
     WALRUS_RPC_URL: str = os.getenv("WALRUS_RPC_URL", "")
     WALRUS_CONTRACT_ADDRESS: str = os.getenv("WALRUS_CONTRACT_ADDRESS", "")
     WALRUS_STORAGE_NODE: str = os.getenv("WALRUS_STORAGE_NODE", "")
+    WALRUS_PUBLISHER_URL: str = os.getenv("WALRUS_PUBLISHER_URL", "https://publisher.walrus-testnet.walrus.space")
+    WALRUS_AGGREGATOR_URL: str = os.getenv("WALRUS_AGGREGATOR_URL", "https://aggregator.walrus-testnet.walrus.space")
+    WALRUS_API_TOKEN: Optional[str] = os.getenv("WALRUS_API_TOKEN")
     
     # Sui 网络配置
-    SUI_RPC_URL: str = os.getenv("SUI_RPC_URL", "")
+    SUI_RPC_URL: str = os.getenv("SUI_RPC_URL", "https://fullnode.testnet.sui.io:443")
     SUI_NETWORK: str = os.getenv("SUI_NETWORK", "testnet")
+    SUI_PRIVATE_KEY: Optional[str] = os.getenv("SUI_PRIVATE_KEY")
+    SUI_MNEMONIC: Optional[str] = os.getenv("SUI_MNEMONIC")
     
     # 应用配置
     APP_NAME: str = os.getenv("APP_NAME", "MarkovWalrusRecommender")

@@ -53,9 +53,8 @@ class WalrusEventStorage:
                 "uploaded_at": datetime.utcnow().isoformat()
             }
             
-            # 上传到Walrus (模拟)
-            # 实际环境中会调用真实的Walrus API
-            blob_id = await self._simulate_walrus_upload(storage_payload, encrypt)
+            # 使用真实的Walrus存储
+            blob_id = await self.storage.store_data(storage_payload, encrypt=encrypt)
             
             # 生成存储证明
             storage_proof = self._generate_storage_proof(event_id, blob_id, storage_payload)
@@ -77,25 +76,6 @@ class WalrusEventStorage:
         except Exception as e:
             logger.error(f"Failed to upload event data: {e}")
             raise
-    
-    async def _simulate_walrus_upload(self, data: Dict[str, Any], encrypt: bool) -> str:
-        """
-        模拟Walrus上传（实际应调用Walrus API）
-        
-        Returns:
-            模拟的blob_id
-        """
-        # 生成模拟的blob_id
-        data_hash = hashlib.sha256(
-            json.dumps(data, sort_keys=True).encode()
-        ).hexdigest()
-        
-        blob_id = f"walrus_blob_{data_hash[:16]}"
-        
-        # 在实际实现中，这里会调用：
-        # blob_id = await self.storage.store_data(data, encrypt=encrypt)
-        
-        return blob_id
     
     def _generate_storage_proof(
         self,

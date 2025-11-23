@@ -177,6 +177,8 @@ class EventManager:
         cover_image: Optional[str] = None,
         cover_image_path: Optional[str] = None,
         tags: Optional[List[str]] = None,
+        price: int = 0,
+        ticket_type: str = "free",
     ) -> Event:
         """
         Create new event in PostgreSQL
@@ -196,6 +198,8 @@ class EventManager:
             cover_image=cover_image,
             cover_image_path=cover_image_path,
             tags=tags,
+            price=price,
+            ticket_type=ticket_type,
         )
 
         db.add(event)

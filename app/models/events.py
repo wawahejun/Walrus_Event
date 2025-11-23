@@ -19,6 +19,8 @@ class Event(Base):
     cover_image = Column(Text, nullable=True)
     cover_image_path = Column(String, nullable=True)  # For uploaded images
     tags = Column(ARRAY(String), nullable=True)  # Event tags
+    price = Column(Integer, default=0)  # Ticket price in MIST (0 for free)
+    ticket_type = Column(String, default="free")  # "free" or "paid"
     created_at = Column(DateTime(timezone=False), default=lambda: datetime.now())
     updated_at = Column(DateTime(timezone=False), default=lambda: datetime.now(), onupdate=lambda: datetime.now())
 

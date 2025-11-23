@@ -1,9 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Lock, Unlock, Eye, Save, Calendar, MapPin, Type, UploadCloud, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Lock, Unlock, MapPin, Type, UploadCloud, X, Users, Ticket, DollarSign, Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '../ui/utils';
+import { useCurrentAccount } from '@mysten/dapp-kit';
+import { useSuiAnchor } from '../../hooks/useSuiAnchor';
+import { Calendar } from '../ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Button } from '../ui/button';
 
 export const EventForge = () => {
+  // Wallet and blockchain hooks
+  const account = useCurrentAccount();
+  const { anchorToBlockchain, isAnchoring } = useSuiAnchor();
+
   const [privacyLevel, setPrivacyLevel] = useState(50);
   const [formData, setFormData] = useState({
     title: '',
@@ -11,10 +19,13 @@ export const EventForge = () => {
     description: '',
     start_time: '',
     end_time: '',
-    tags: [] as string[]
+    tags: [] as string[],
+    max_participants: 100,
+    ticket_type: 'free', // 'free' or 'paid'
+    price: 0 // Price in MIST (1 SUI = 1,000,000,000 MIST)
   });
   const [creating, setCreating] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string, eventId?: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string, eventId?: string, txDigest?: string } | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [tagInput, setTagInput] = useState('');
 
@@ -60,9 +71,43 @@ export const EventForge = () => {
   };
 
   const handleCreateEvent = async () => {
+    // Helper function to validate date format and logic (e.g. reject Feb 31)
+    const validateDateTime = (str: string) => {
+      const regex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/;
+      if (!regex.test(str)) return false;
+
+      const [datePart, timePart] = str.split(' ');
+      const [y, m, d] = datePart.split('-').map(Number);
+      const [h, min] = timePart.split(':').map(Number);
+
+      const date = new Date(y, m - 1, d, h, min);
+      return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d && date.getHours() === h && date.getMinutes() === min;
+    };
+
+    // Helper function to convert text input "YYYY-MM-DD HH:MM" to ISO string "YYYY-MM-DDTHH:MM:00"
+    const toNaiveDatetime = (dateTimeStr: string) => {
+      if (!dateTimeStr) return null;
+      return dateTimeStr.replace(' ', 'T') + ':00';
+    };
+
     // Validation
     if (!formData.title || !formData.description) {
       setMessage({ type: 'error', text: 'Please fill in title and description' });
+      return;
+    }
+
+    if (formData.start_time && !validateDateTime(formData.start_time)) {
+      setMessage({ type: 'error', text: 'Invalid Start Time. Format: YYYY-MM-DD HH:MM (e.g. 2025-11-23 19:00)' });
+      return;
+    }
+
+    if (new Date(formData.start_time) < new Date()) {
+      setMessage({ type: 'error', text: 'Start time cannot be in the past' });
+      return;
+    }
+
+    if (formData.end_time && !validateDateTime(formData.end_time)) {
+      setMessage({ type: 'error', text: 'Invalid End Time. Format: YYYY-MM-DD HH:MM' });
       return;
     }
 
@@ -85,48 +130,105 @@ export const EventForge = () => {
         }
       }
 
-      // Helper function to convert datetime-local to timezone-naive ISO string
-      const toNaiveDatetime = (dateTimeLocal: string) => {
-        if (!dateTimeLocal) return null;
-        // datetime-local format: "2025-09-22T18:20"
-        // We need to convert to: "2025-09-22T18:20:00" (no timezone)
-        return dateTimeLocal + ':00';
-      };
-
       // Create event
       const response = await fetch('http://localhost:8000/api/v1/events/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          organizer_id: 'user_' + Date.now(), // Replace with actual wallet address
+          organizer_id: account?.address || 'anonymous_' + Date.now(),
           title: formData.title,
           description: formData.description,
           event_type: 'Meetup',
           start_time: formData.start_time ? toNaiveDatetime(formData.start_time) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19),
           end_time: formData.end_time ? toNaiveDatetime(formData.end_time) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString().slice(0, 19),
           location: formData.location || 'Virtual',
-          max_participants: 100,
+          max_participants: formData.max_participants,
           privacy_level: privacyLevelMap,
           store_to_walrus: true,
           cover_image_path: coverImagePath,
-          tags: formData.tags
+          tags: formData.tags,
+          ticket_type: formData.ticket_type,
+          price: formData.ticket_type === 'paid' ? formData.price : 0
         })
       });
 
       const result = await response.json();
 
       if (result.status === 'success') {
-        setMessage({
-          type: 'success',
-          text: `✅ Event "${formData.title}" created successfully!\nBlob ID: ${result.walrus_storage?.blob_id || 'N/A'}\n\nImage: ${coverImagePath || 'None'}\n\nGo to Privacy Discovery to see your event!`,
-          eventId: result.event_id
-        });
+        const blobId = result.walrus_storage?.blob_id;
+
+        // If wallet connected, anchor to Sui blockchain
+        if (account && blobId) {
+          setMessage({
+            type: 'success',
+            text: `✅ Event created! Anchoring to Sui blockchain...\nBlob ID: ${blobId}`,
+            eventId: result.event_id
+          });
+
+          try {
+            // 使用后端返回的 event_hash（如果有）
+            const eventHash = result.event_hash || btoa(JSON.stringify({
+              id: result.event_id,
+              title: formData.title,
+              timestamp: Date.now()
+            })).substring(0, 64).padEnd(64, '0');
+
+            const anchorResult = await anchorToBlockchain(
+              result.event_id,
+              eventHash,
+              blobId
+            );
+
+            if (anchorResult.success) {
+              setMessage({
+                type: 'success',
+                text: `🎉 Event anchored to Sui blockchain!\n\nBlob ID: ${blobId}\nTransaction: ${anchorResult.digest?.slice(0, 16)}...\n\nView in Sui Explorer`,
+                eventId: result.event_id,
+                txDigest: anchorResult.digest
+              });
+            } else {
+              setMessage({
+                type: 'error',
+                text: `Event created but blockchain anchoring failed: ${anchorResult.error}\n\nBlob ID: ${blobId}`
+              });
+            }
+          } catch (txError: any) {
+            console.error('Sui anchoring error:', txError);
+            setMessage({
+              type: 'error',
+              text: `Event created but blockchain anchoring failed: ${txError.message}\n\nBlob ID: ${blobId}`
+            });
+          }
+        } else {
+          // No wallet connected, show success without blockchain
+          setMessage({
+            type: 'success',
+            text: `✅ Event "${formData.title}" created!\nBlob ID: ${blobId || 'N/A'}\n\n${!account ? '💡 Connect wallet to anchor on Sui blockchain' : ''}`,
+            eventId: result.event_id
+          });
+        }
+
         // Clear form
-        setFormData({ title: '', location: '', description: '', start_time: '', end_time: '', tags: [] });
+        setFormData({
+          title: '',
+          location: '',
+          description: '',
+          start_time: '',
+          end_time: '',
+          tags: [],
+          max_participants: 100,
+          ticket_type: 'free',
+          price: 0
+        });
         setSelectedFile(null);
         setTagInput('');
       } else {
-        setMessage({ type: 'error', text: result.detail || 'Failed to create event' });
+        const errorText = typeof result.detail === 'string'
+          ? result.detail
+          : Array.isArray(result.detail)
+            ? result.detail.map((e: any) => e.msg).join(', ')
+            : JSON.stringify(result.detail);
+        setMessage({ type: 'error', text: errorText || 'Failed to create event' });
       }
     } catch (error) {
       console.error('Error creating event:', error);
@@ -176,27 +278,92 @@ export const EventForge = () => {
             </div>
           </div>
 
+          {/* Ticket & Capacity Settings */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Max Participants */}
+            <div className="space-y-2">
+              <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">Max Participants</label>
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#F59E0B] transition-colors">
+                  <Users size={16} />
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.max_participants}
+                  onChange={(e) => setFormData({ ...formData, max_participants: parseInt(e.target.value) || 0 })}
+                  className="w-full h-12 bg-white/80 border border-amber-200 rounded-xl pl-12 pr-4 text-sm focus:outline-none focus:border-[#F59E0B]/50 transition-colors shadow-sm"
+                />
+              </div>
+            </div>
+
+            {/* Ticket Type */}
+            <div className="space-y-2">
+              <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">Ticket Type</label>
+              <div className="flex bg-white/80 border border-amber-200 rounded-xl p-1 h-12">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, ticket_type: 'free' })}
+                  className={cn(
+                    "flex-1 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2",
+                    formData.ticket_type === 'free' ? "bg-amber-100 text-amber-800 shadow-sm" : "text-gray-500 hover:bg-amber-50"
+                  )}
+                >
+                  <Ticket size={14} /> Free
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, ticket_type: 'paid' })}
+                  className={cn(
+                    "flex-1 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2",
+                    formData.ticket_type === 'paid' ? "bg-amber-100 text-amber-800 shadow-sm" : "text-gray-500 hover:bg-amber-50"
+                  )}
+                >
+                  <DollarSign size={14} /> Paid
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Price Input (Only if Paid) */}
+          {formData.ticket_type === 'paid' && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+              <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">Ticket Price (MIST)</label>
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#F59E0B] transition-colors">
+                  <span className="font-bold text-xs">SUI</span>
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  step="1000000"
+                  placeholder="e.g. 100000000 (0.1 SUI)"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                  className="w-full h-12 bg-white/80 border border-amber-200 rounded-xl pl-12 pr-4 text-sm focus:outline-none focus:border-[#F59E0B]/50 transition-colors shadow-sm"
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                  {(formData.price / 1000000000).toFixed(4)} SUI
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Start Time */}
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">Start Time</label>
-            <input
-              type="datetime-local"
-              lang="en-US"
-              className="w-full bg-white/80 border border-amber-200 rounded-xl p-3 text-sm focus:outline-none focus:border-[#F59E0B]/50 transition-colors shadow-sm"
+            <DatePickerWithTime
+              label="Start Time"
               value={formData.start_time}
-              onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+              onChange={(v) => setFormData({ ...formData, start_time: v })}
             />
           </div>
 
           {/* End Time */}
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">End Time</label>
-            <input
-              type="datetime-local"
-              lang="en-US"
-              className="w-full bg-white/80 border border-amber-200 rounded-xl p-3 text-sm focus:outline-none focus:border-[#F59E0B]/50 transition-colors shadow-sm"
+            <DatePickerWithTime
+              label="End Time"
               value={formData.end_time}
-              onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+              onChange={(v) => setFormData({ ...formData, end_time: v })}
             />
           </div>
 
@@ -336,12 +503,20 @@ export const EventForge = () => {
 
           <button
             onClick={handleCreateEvent}
-            disabled={creating}
+            disabled={creating || isAnchoring}
             className="w-full py-4 rounded-xl bg-gradient-to-r from-[#F59E0B] to-yellow-600 font-bold text-white shadow-[0_4px_20px_rgba(245,158,11,0.25)] hover:shadow-[0_0_30px_rgba(245,158,11,0.5)] transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <UploadCloud size={18} />
-            <span>{creating ? 'CREATING...' : 'FORGE & SEAL ON WALRUS'}</span>
+            <span>
+              {creating ? 'CREATING...' : isAnchoring ? 'ANCHORING TO SUI...' : 'FORGE & SEAL ON WALRUS'}
+            </span>
           </button>
+
+          {!account && (
+            <p className="text-xs text-amber-600 text-center mt-2">
+              💡 Connect your Sui wallet to anchor events on blockchain
+            </p>
+          )}
         </div>
       </div>
 
@@ -429,3 +604,79 @@ const PreviewItem = ({ label, value, secure, multiline }: any) => {
     </div>
   )
 }
+
+const DatePickerWithTime = ({ label, value, onChange }: { label: string, value: string, onChange: (val: string) => void }) => {
+  const [date, setDate] = React.useState<Date | undefined>(() => {
+    if (!value) return undefined;
+    const [d] = value.split(' ');
+    // Handle YYYY-MM-DD format
+    if (d) {
+      const [y, m, day] = d.split('-').map(Number);
+      return new Date(y, m - 1, day);
+    }
+    return undefined;
+  });
+
+  const [time, setTime] = React.useState(() => {
+    if (!value) return "12:00";
+    const parts = value.split(' ');
+    return parts.length > 1 ? parts[1] : "12:00";
+  });
+
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (date && time) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      onChange(`${y}-${m}-${d} ${time}`);
+    }
+  }, [date, time]);
+
+  return (
+    <div className="space-y-2 relative">
+      <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">{label}</label>
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant={"outline"}
+          onClick={() => setIsOpen(!isOpen)}
+          className={cn(
+            "w-[240px] justify-start text-left font-normal bg-white/80 border-amber-200 hover:bg-amber-50 h-12 rounded-xl",
+            !date && "text-muted-foreground"
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4 text-amber-500" />
+          {date ? date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : <span>Pick a date</span>}
+        </Button>
+
+        <div className="relative w-32">
+          <input
+            type="time"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+            className="w-full h-12 bg-white/80 border border-amber-200 rounded-xl px-3 text-sm focus:outline-none focus:border-[#F59E0B]/50 transition-colors shadow-sm text-center"
+          />
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="absolute top-[calc(100%+0.5rem)] left-0 z-50 bg-white border border-amber-200 rounded-xl shadow-xl p-2 animate-in fade-in zoom-in-95 duration-200">
+          <div
+            className="fixed inset-0 z-[-1]"
+            onClick={() => setIsOpen(false)}
+          />
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={(d) => { setDate(d); setIsOpen(false); }}
+            initialFocus
+            className="rounded-md border-0 bg-white"
+            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+          />
+        </div>
+      )}
+    </div>
+  );
+};

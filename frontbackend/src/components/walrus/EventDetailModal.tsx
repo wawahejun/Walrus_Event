@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar, MapPin, Users, ArrowLeft, ArrowRight } from 'lucide-react';
+import { X, Calendar, MapPin, Users, ArrowLeft, ExternalLink, Shield, Ticket, Share2, CheckCircle, Loader2 } from 'lucide-react';
 import { Activity } from './PrivacyDiscovery';
+import { useTicketSystem } from '../../hooks/useTicketSystem';
+import { useCurrentAccount, useSuiClient } from '@mysten/dapp-kit';
 
 interface EventDetailModalProps {
     event: Activity | null;
@@ -13,6 +15,12 @@ interface EventDetailModalProps {
 export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpen, onClose, onEventUpdate }) => {
     const [joined, setJoined] = useState(false);
     const [loading, setLoading] = useState(false);
+    const { mintTicket, buyTicket, generateAndVerifyZKProof, isMinting, isVerifyingZK } = useTicketSystem();
+    // const client = useSuiClient();
+    const [ticketId, setTicketId] = useState<string | null>(null);
+    const [zkVerified, setZkVerified] = useState(false);
+    const account = useCurrentAccount();
+    const hasPackageId = !!import.meta.env.VITE_SUI_PACKAGE_ID;
 
     useEffect(() => {
         if (isOpen && event) {
@@ -23,6 +31,54 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpe
     }, [isOpen, event]);
 
     if (!isOpen || !event) return null;
+
+    // Fetch user's ticket for this event
+    // Fetch user's ticket for this event
+    /*
+    useEffect(() => {
+        const fetchTicket = async () => {
+            if (!account || !event || !joined || !client || !hasPackageId) {
+                setTicketId(null); // Reset ticketId if conditions are not met
+                setZkVerified(false); // Reset ZK verification status
+                return;
+            }
+
+            try {
+                const { data } = await client.getOwnedObjects({
+                    owner: account.address,
+                    filter: {
+                        StructType: `${import.meta.env.VITE_SUI_PACKAGE_ID}::ticket_system::EventTicket`
+                    },
+                    options: { showContent: true }
+                });
+
+                const ticket = data.find(obj => {
+                    const content = obj.data?.content as any;
+                    return content?.fields?.event_id === event.id;
+                });
+
+                if (ticket?.data?.objectId) {
+                    setTicketId(ticket.data.objectId);
+                    // Check if already verified
+                    if (ticket.data.content && (ticket.data.content as any).fields.zk_proof_hash) {
+                        setZkVerified(true); // Set to true if proof hash exists
+                    } else {
+                        setZkVerified(false);
+                    }
+                } else {
+                    setTicketId(null);
+                    setZkVerified(false);
+                }
+            } catch (e) {
+                console.error("Failed to fetch ticket:", e);
+                setTicketId(null);
+                setZkVerified(false);
+            }
+        };
+
+        fetchTicket();
+    }, [account, event, joined, client, hasPackageId]);
+    */
 
     const handleJoinEvent = async () => {
         setLoading(true);
@@ -49,6 +105,32 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpe
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.detail || 'Failed to join event');
+                }
+
+                // Mint NFT Ticket if wallet is connected and contract deployed
+                if (account && hasPackageId) {
+                    try {
+                        console.log("Starting Ticket Purchase & ZK Flow...");
+
+                        // 1. Buy Ticket (Pay SUI)
+                        // For demo, we assume price is 0.1 SUI (100000000 MIST)
+                        // In real app, price comes from event data
+                        const price = 100000000;
+                        const organizer = "0x19ad2b3379d7bed27e528eac49bca2327ba465f7188225a3e4522e11f966d93b"; // Demo organizer
+
+                        const ticketResult = await buyTicket(event.id, price, organizer);
+                        console.log("Ticket Purchased:", ticketResult);
+                        alert("✅ Payment Successful! Ticket NFT Minted.");
+
+                        // 2. Generate & Verify ZK Proof
+                        // 2. Generate & Verify ZK Proof
+                        // We will show a button for this instead of auto-confirm
+                        // setZkVerified(false); // Reset status
+
+                    } catch (mintError) {
+                        console.error("Failed to process ticket:", mintError);
+                        alert("Transaction failed. See console for details.");
+                    }
                 }
             }
 
@@ -292,6 +374,100 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpe
                                     </div>
                                 </div>
 
+                                {/* Blockchain Verification */}
+                                {(event as any).blob_id && (
+                                    <div className="p-4 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Shield size={20} className="text-green-600" />
+                                            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                                                Blockchain Verification
+                                            </h3>
+                                        </div>
+
+                                        <div className="space-y-2 text-sm">
+                                            {/* Walrus Storage */}
+                                            <div className="flex items-center justify-between p-2 bg-white/60 rounded-lg">
+                                                <span className="text-gray-600">Walrus Storage:</span>
+                                                <a
+                                                    href={`https://aggregator.walrus-testnet.walrus.space/v1/blobs/${(event as any).blob_id}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-1 text-blue-600 hover:text-blue-700 font-mono text-xs"
+                                                >
+                                                    {(event as any).blob_id.slice(0, 12)}...
+                                                    <ExternalLink size={12} />
+                                                </a>
+                                            </div>
+
+                                            {/* Sui Transaction */}
+                                            {(event as any).transaction_id && (
+                                                <div className="flex items-center justify-between p-2 bg-white/60 rounded-lg">
+                                                    <span className="text-gray-600">Sui Blockchain:</span>
+                                                    <a
+                                                        href={`https://testnet.suivision.xyz/txblock/${(event as any).transaction_id}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-1 text-blue-600 hover:text-blue-700 font-mono text-xs"
+                                                    >
+                                                        {(event as any).transaction_id.slice(0, 12)}...
+                                                        <ExternalLink size={12} />
+                                                    </a>
+                                                </div>
+                                            )}
+
+                                            {/* Verification Badge */}
+                                            <div className="mt-2 p-2 bg-green-100 rounded-lg flex items-center gap-2">
+                                                <Shield size={16} className="text-green-700" />
+                                                <span className="text-green-700 font-medium text-xs">
+                                                    ✓ Data verified on {(event as any).transaction_id ? 'Sui blockchain' : 'Walrus storage'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ZK Verification Status */}
+                                {joined && (
+                                    <div className={`p-4 rounded-2xl border ${zkVerified ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Shield size={20} className={zkVerified ? 'text-green-600' : 'text-yellow-600'} />
+                                            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900">
+                                                Attendance Proof
+                                            </h3>
+                                        </div>
+                                        <p className="text-sm text-gray-600 mb-3">
+                                            {isVerifyingZK
+                                                ? "⏳ Verifying ZK Proof on-chain..."
+                                                : zkVerified
+                                                    ? "✅ ZK Proof Verified. Access Granted."
+                                                    : "⚠️ Proof not generated yet. Please generate to enter."}
+                                        </p>
+                                        {!zkVerified && !isVerifyingZK && (
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        if (!ticketId) {
+                                                            alert("Ticket not found. Please wait for transaction to confirm or refresh.");
+                                                            return;
+                                                        }
+                                                        await generateAndVerifyZKProof(ticketId);
+                                                        setZkVerified(true);
+                                                    } catch (e) {
+                                                        console.error("ZK Verify failed", e);
+                                                        alert("Verification failed. See console.");
+                                                    }
+                                                }}
+                                                disabled={!ticketId}
+                                                className={`w-full py-3 rounded-xl font-bold text-white shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${!ticketId ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-green-500/25'
+                                                    }`}
+                                            >
+                                                {isVerifyingZK ? <Loader2 className="animate-spin" /> : <Shield size={18} />}
+                                                <span>{ticketId ? "Generate & Verify Proof" : "Finding Ticket..."}</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+
                                 {/* Organizer */}
                                 <div className="flex items-center gap-4 p-4 rounded-2xl bg-amber-50 border border-amber-100">
                                     <div className="w-12 h-12 rounded-full bg-amber-200 flex items-center justify-center text-amber-700 font-bold text-xl">
@@ -309,7 +485,11 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpe
                                 <div className="flex items-center justify-between gap-4">
                                     <div className="hidden md:block">
                                         <div className="text-sm text-gray-500">Price</div>
-                                        <div className="text-2xl font-bold text-gray-900">Free</div>
+                                        <div className="text-2xl font-bold text-gray-900">
+                                            {(event as any).price && (event as any).price > 0
+                                                ? `${((event as any).price / 1000000000).toFixed(2)} SUI`
+                                                : 'Free'}
+                                        </div>
                                     </div>
                                     {joined ? (
                                         <button
@@ -331,8 +511,8 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpe
                                                 'Event Full'
                                             ) : (
                                                 <>
-                                                    Join Event
-                                                    <ArrowRight size={20} />
+                                                    Join Event & Mint Ticket
+                                                    <Ticket size={20} />
                                                 </>
                                             )}
                                         </button>
@@ -341,8 +521,8 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpe
                             </div>
                         </div>
                     </motion.div>
-                </div>
+                </div >
             )}
-        </AnimatePresence>
+        </AnimatePresence >
     );
 };

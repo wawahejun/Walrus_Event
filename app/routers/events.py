@@ -448,6 +448,8 @@ class CreateEventRequest(BaseModel):
     cover_image: Optional[str] = None
     cover_image_path: Optional[str] = None
     tags: Optional[List[str]] = None
+    price: int = Field(default=0, ge=0)
+    ticket_type: str = Field(default="free", pattern="^(free|paid)$")
 
 
 class UpdateEventRequest(BaseModel):
@@ -486,6 +488,8 @@ async def create_event(request: CreateEventRequest, db: AsyncSession = Depends(g
             cover_image=request.cover_image,
             cover_image_path=request.cover_image_path,
             tags=request.tags,
+            price=request.price,
+            ticket_type=request.ticket_type,
         )
         
         response = {
@@ -502,8 +506,28 @@ async def create_event(request: CreateEventRequest, db: AsyncSession = Depends(g
                 "cover_image": event.cover_image,
                 "cover_image_path": event.cover_image_path,
                 "tags": event.tags or [],
+                "price": event.price,
+                "ticket_type": event.ticket_type,
             }
         }
+        
+        # 生成事件hash用于区块链锚定
+        import hashlib
+        import json
+        
+        event_hash_data = {
+            "event_id": event.event_id,
+            "title": event.title,
+            "description": event.description,
+            "event_type": event.event_type,
+            "start_time": event.start_time.isoformat(),
+            "created_at": event.created_at.isoformat()
+        }
+        event_hash = hashlib.sha256(
+            json.dumps(event_hash_data, sort_keys=True, ensure_ascii=False).encode('utf-8')
+        ).hexdigest()
+        
+        response["event_hash"] = event_hash
         
         # 如果需要存储到Walrus
         if request.store_to_walrus:
