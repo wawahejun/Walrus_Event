@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ParallaxScrollSecond } from '../ui/parallax-scroll';
 import { ArrowRight, Users, Calendar, MapPin, Clock, Sparkles, TrendingUp, ClockIcon } from 'lucide-react';
 import { EventDetailModal } from './EventDetailModal';
+import { StackedCircularFooter } from '../ui/stacked-circular-footer';
 
 export interface Activity {
   id: string;
@@ -565,6 +566,7 @@ const PrivacyDiscovery: React.FC = () => {
           setSelectedActivity(updatedEvent);
         }}
       />
+      <StackedCircularFooter />
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Link as LinkIcon, Share2, Shield, Activity, Award } from 'lucide-react';
 import { cn } from '../ui/utils';
+import { StackedCircularFooter } from '../ui/stacked-circular-footer';
 
 export const ReputationSystem = () => {
   return (
@@ -94,7 +95,8 @@ export const ReputationSystem = () => {
           </div>
         </div>
       </div>
-    </div>
+      <StackedCircularFooter />
+    </div >
   );
 };
 

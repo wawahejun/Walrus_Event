@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Scale, FileText, Check, X, Lock } from 'lucide-react';
 import { cn } from '../ui/utils';
+import { StackedCircularFooter } from '../ui/stacked-circular-footer';
 
 export const GovernanceHall = () => {
   return (
@@ -40,6 +41,7 @@ export const GovernanceHall = () => {
           hasVoted
         />
       </div>
+      <StackedCircularFooter />
     </div>
   );
 };

@@ -6,6 +6,7 @@ import { useCurrentAccount, useConnectWallet, useDisconnectWallet } from '@myste
 import { EventDetailModal } from './EventDetailModal';
 import { EventEditModal } from './EventEditModal';
 import { WalletButton } from '../wallet/wallet-button';
+import { StackedCircularFooter } from '../ui/stacked-circular-footer';
 
 interface UserEvent {
   event_id: string;
@@ -376,6 +377,7 @@ export const SovereigntyCenter = () => {
           </motion.div>
         ))}
       </div>
+      <StackedCircularFooter />
     </div >
   );
 };

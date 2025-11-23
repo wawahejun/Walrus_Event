@@ -7,6 +7,7 @@ import { Calendar } from '../ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Button } from '../ui/button';
 import { DatePickerWithTime } from '../ui/date-picker-with-time';
+import { StackedCircularFooter } from '../ui/stacked-circular-footer';
 
 export const EventForge = () => {
   // Wallet and blockchain hooks
@@ -582,6 +583,7 @@ export const EventForge = () => {
           </div>
         </div>
       </div>
+      <StackedCircularFooter />
     </div>
   );
 };

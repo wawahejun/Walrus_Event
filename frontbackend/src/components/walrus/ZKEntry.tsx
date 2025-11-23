@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { QrCode, CheckCircle, ArrowLeft, List } from 'lucide-react';
 import QRCode from 'react-qr-code';
+import { StackedCircularFooter } from '../ui/stacked-circular-footer';
 
 export const ZKEntry = () => {
   const [scanning, setScanning] = useState(true);
@@ -50,7 +51,21 @@ export const ZKEntry = () => {
           >
             <ArrowLeft className="text-gray-600" />
           </button>
-          <h2 className="text-lg font-bold text-gray-800">My ZK Tickets</h2>
+          <h2 className="text-lg font-bold text-gray-800 flex-1">My ZK Tickets</h2>
+          {tickets.length > 0 && (
+            <button
+              onClick={() => {
+                if (window.confirm('Are you sure you want to clear all tickets? This action cannot be undone.')) {
+                  localStorage.setItem('joinedEvents', JSON.stringify([]));
+                  setTickets([]);
+                  setSelectedTicket(null);
+                }
+              }}
+              className="px-3 py-1.5 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+            >
+              Clear All
+            </button>
+          )}
         </div>
       )}
 
@@ -150,6 +165,7 @@ export const ZKEntry = () => {
             )}
           </div>
         )}
+        <StackedCircularFooter />
       </div>
 
       {/* Bottom Ticket Wallet (Only in Scan Mode) */}
@@ -279,7 +295,9 @@ export const ZKEntry = () => {
                           })
                         });
 
-                        if (!response.ok) {
+                        // If 404, it means the participant was never actually registered
+                        // This is okay - we'll just remove it from localStorage
+                        if (!response.ok && response.status !== 404) {
                           const errorData = await response.json();
                           throw new Error(errorData.detail || 'Failed to leave event');
                         }
@@ -291,7 +309,7 @@ export const ZKEntry = () => {
                       localStorage.setItem('joinedEvents', JSON.stringify(updatedTickets));
                       setSelectedTicket(null);
 
-                      alert('Successfully cancelled participation');
+                      alert('Successfully removed ticket');
                     } catch (error) {
                       console.error('Error cancelling participation:', error);
                       alert(error instanceof Error ? error.message : 'Failed to cancel participation');

@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Shield, Hammer, Compass, QrCode, Link as LinkIcon, Scale, ArrowRight, Sparkles } from 'lucide-react';
 import { cn } from '../ui/utils';
+import { StackedCircularFooter } from '../ui/stacked-circular-footer';
 
 interface HomePageProps {
     onNavigate?: (page: string) => void;
@@ -291,6 +292,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                     </motion.button>
                 </motion.div>
             </section>
-        </div>
+            <StackedCircularFooter />
+        </div >
     );
 };
