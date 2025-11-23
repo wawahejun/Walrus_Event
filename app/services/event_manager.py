@@ -18,7 +18,7 @@ from cryptography.hazmat.backends import default_backend
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.models import Event
+from app.models import Event, Participant
 from app.core.security import encrypt_data, decrypt_data, generate_key_pair
 
 from app.core.walrus import walrus_storage
@@ -137,7 +137,30 @@ class EventManager:
         shared_key = priv_key.exchange(ec.ECDH(), pub_key)
 
         # 使用HKDF派生最终密钥
-        pass  # No longer need self.events dict
+        hkdf = HKDF(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=None,
+            info=b'handshake data',
+            backend=default_backend()
+        )
+        return hkdf.derive(shared_key)
+
+    def register_participant(self, user_id: str) -> None:
+        """
+        Register a new participant with a key pair
+        """
+        if user_id not in self.participant_keys:
+            self.participant_keys[user_id] = self._generate_key_pair()
+            logger.info(f"Registered participant {user_id}")
+
+    def register_organizer(self, organizer_id: str) -> None:
+        """
+        Register a new organizer with a key pair
+        """
+        if organizer_id not in self.organizer_keys:
+            self.organizer_keys[organizer_id] = self._generate_key_pair()
+            logger.info(f"Registered organizer {organizer_id}")
 
     async def create_event(
         self,
@@ -356,35 +379,112 @@ class EventManager:
         data_str = json.dumps(data, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(data_str.encode()).hexdigest()
 
-    def add_participant(self, event_id: str, user_id: str) -> bool:
+    async def add_participant(self, db: AsyncSession, event_id: str, user_id: str) -> bool:
         """
         添加参与者到活动
 
         Args:
+            db: 数据库会话
             event_id: 活动ID
             user_id: 用户ID
 
         Returns:
             是否成功
         """
+        # 如果内存中没有，尝试从数据库加载
         if event_id not in self.events:
-            raise ValueError(f"Event {event_id} not found")
+            db_event = await self.get_event(db, event_id)
+            if not db_event:
+                raise ValueError(f"Event {event_id} not found")
+            
+            # 将数据库事件转换为内存中的EncryptedEvent对象
+            self.events[event_id] = EncryptedEvent(
+                event_id=db_event.event_id,
+                organizer_id=db_event.organizer_id,
+                title=db_event.title,
+                description=db_event.description,
+                event_type=db_event.event_type,
+                start_time=db_event.start_time,
+                end_time=db_event.end_time,
+                location=db_event.location,
+                max_participants=db_event.max_participants,
+                cover_image=db_event.cover_image
+            )
 
         event = self.events[event_id]
 
-        if len(event.participants) >= event.max_participants:
+        # Check capacity using DB count
+        from sqlalchemy import func
+        from app.models import Participant
+        
+        stmt = select(func.count()).select_from(Participant).where(Participant.event_id == event_id)
+        current_count = await db.scalar(stmt)
+        
+        if current_count >= event.max_participants:
             raise ValueError("Event is full")
+
+        # Check if already joined
+        stmt = select(Participant).where(
+            Participant.event_id == event_id,
+            Participant.user_id == user_id
+        )
+        result = await db.execute(stmt)
+        if result.scalar_one_or_none():
+            return True # Already joined
 
         if user_id not in self.participant_keys:
             self.register_participant(user_id)
 
         _, public_key = self.participant_keys[user_id]
 
+        # Add to memory
         participant = EventParticipant(user_id, public_key)
         event.participants[user_id] = participant
         event.updated_at = datetime.utcnow()
+        
+        # Add to DB
+        db_participant = Participant(event_id=event_id, user_id=user_id)
+        db.add(db_participant)
+        await db.commit()
 
         logger.info(f"Added participant {user_id} to event {event_id}")
+        return True
+
+    async def remove_participant(self, db: AsyncSession, event_id: str, user_id: str) -> bool:
+        """
+        移除参与者从活动
+        
+        Args:
+            db: 数据库会话
+            event_id: 活动ID
+            user_id: 用户ID
+            
+        Returns:
+            是否成功
+        """
+        from app.models import Participant
+        
+        # Check if participant exists in database
+        stmt = select(Participant).where(
+            Participant.event_id == event_id,
+            Participant.user_id == user_id
+        )
+        result = await db.execute(stmt)
+        participant = result.scalar_one_or_none()
+        
+        if not participant:
+            return False  # Participant not found
+        
+        # Remove from database
+        await db.delete(participant)
+        await db.commit()
+        
+        # Remove from memory if exists
+        if event_id in self.events and user_id in self.events[event_id].participants:
+            del self.events[event_id].participants[user_id]
+            self.events[event_id].updated_at = datetime.utcnow()
+        
+        logger.info(f"Removed participant {user_id} from event {event_id}")
         return True
 
     def decrypt_event(self, event_id: str, user_id: str, encrypted_data: Dict) -> Dict[str, Any]:

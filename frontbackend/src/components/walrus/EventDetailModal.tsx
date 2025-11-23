@@ -1,173 +1,347 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar, MapPin, Users, Hash, Shield, Database } from 'lucide-react';
+import { X, Calendar, MapPin, Users, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Activity } from './PrivacyDiscovery';
 
 interface EventDetailModalProps {
     event: Activity | null;
     isOpen: boolean;
     onClose: () => void;
+    onEventUpdate?: (event: Activity) => void;
 }
 
-export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpen, onClose }) => {
-    if (!event) return null;
+export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpen, onClose, onEventUpdate }) => {
+    const [joined, setJoined] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && event) {
+            const joinedEvents = JSON.parse(localStorage.getItem('joinedEvents') || '[]');
+            const isJoined = joinedEvents.some((e: any) => e.id === event.id);
+            setJoined(isJoined);
+        }
+    }, [isOpen, event]);
+
+    if (!isOpen || !event) return null;
+
+    const handleJoinEvent = async () => {
+        setLoading(true);
+        try {
+            // Simulate API call delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Check if it's a real event (has event_id) or simulated
+            const isRealEvent = event.id.startsWith('event_');
+
+            if (isRealEvent) {
+                // Real event logic
+                const response = await fetch(`http://localhost:8000/api/v1/events/${event.id}/join`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: 'demo_user', // Hardcoded for MVP
+                        public_key: 'demo_key'
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to join event');
+                }
+            }
+
+            // Success logic for both real and simulated
+            const joinedEvents = JSON.parse(localStorage.getItem('joinedEvents') || '[]');
+            if (!joinedEvents.some((e: any) => e.id === event.id)) {
+                joinedEvents.push({
+                    ...event,
+                    joinedAt: new Date().toISOString()
+                });
+                localStorage.setItem('joinedEvents', JSON.stringify(joinedEvents));
+            }
+
+            setJoined(true);
+
+            // Fetch updated event data to get accurate participant count
+            if (isRealEvent) {
+                try {
+                    const eventResponse = await fetch(`http://localhost:8000/api/v1/events/${event.id}`);
+                    if (eventResponse.ok) {
+                        const eventData = await eventResponse.json();
+                        if (eventData.status === 'success' && eventData.event) {
+                            const updatedEvent = {
+                                ...event,
+                                participants: eventData.event.participants_count || (event.participants || 0) + 1
+                            };
+                            if (onEventUpdate) {
+                                onEventUpdate(updatedEvent);
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch updated event data:', err);
+                    // Fallback to local increment
+                    const updatedEvent = { ...event, participants: (event.participants || 0) + 1 };
+                    if (onEventUpdate) {
+                        onEventUpdate(updatedEvent);
+                    }
+                }
+            } else {
+                // For simulated events, just increment locally
+                const updatedEvent = { ...event, participants: (event.participants || 0) + 1 };
+                if (onEventUpdate) {
+                    onEventUpdate(updatedEvent);
+                }
+            }
+
+            alert('Successfully joined the event!');
+        } catch (error) {
+            console.error('Join event error:', error);
+            alert(error instanceof Error ? error.message : 'Failed to join event');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleLeaveEvent = async () => {
+        setLoading(true);
+        try {
+            // Check if it's a real event
+            const isRealEvent = event.id.startsWith('event_');
+
+            if (isRealEvent) {
+                // Call backend API to remove participant
+                const response = await fetch(`http://localhost:8000/api/v1/events/${event.id}/leave`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: 'demo_user', // Hardcoded for MVP
+                        public_key: 'demo_key'
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to leave event');
+                }
+            }
+
+            // Remove from local storage
+            const joinedEvents = JSON.parse(localStorage.getItem('joinedEvents') || '[]');
+            const updatedJoinedEvents = joinedEvents.filter((e: any) => e.id !== event.id);
+            localStorage.setItem('joinedEvents', JSON.stringify(updatedJoinedEvents));
+
+            setJoined(false);
+
+            // Fetch updated event data to get accurate participant count
+            if (isRealEvent) {
+                try {
+                    const eventResponse = await fetch(`http://localhost:8000/api/v1/events/${event.id}`);
+                    if (eventResponse.ok) {
+                        const eventData = await eventResponse.json();
+                        if (eventData.status === 'success' && eventData.event) {
+                            const updatedEvent = {
+                                ...event,
+                                participants: eventData.event.current_participants || Math.max(0, (event.participants || 0) - 1)
+                            };
+                            if (onEventUpdate) {
+                                onEventUpdate(updatedEvent);
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch updated event data:', err);
+                    // Fallback to local decrement
+                    const updatedEvent = { ...event, participants: Math.max(0, (event.participants || 0) - 1) };
+                    if (onEventUpdate) {
+                        onEventUpdate(updatedEvent);
+                    }
+                }
+            } else {
+                // Decrement participant count for simulated events
+                const updatedEvent = { ...event, participants: Math.max(0, (event.participants || 0) - 1) };
+                if (onEventUpdate) {
+                    onEventUpdate(updatedEvent);
+                }
+            }
+
+            alert('You have left the event.');
+        } catch (error) {
+            console.error('Leave event error:', error);
+            alert(error instanceof Error ? error.message : 'Failed to leave event');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <AnimatePresence>
             {isOpen && (
-                <>
-                    {/* Backdrop */}
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                     />
-
-                    {/* Modal */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[600px] md:max-h-[80vh] bg-white rounded-2xl shadow-2xl z-[9999] overflow-hidden"
+                        className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[85vh]"
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Header with Image */}
-                        <div className="relative h-48 bg-gradient-to-br from-amber-400 to-orange-500">
-                            {event.image && (
-                                <img
-                                    src={event.image}
-                                    alt={event.title}
-                                    className="w-full h-full object-cover"
-                                />
-                            )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-
-                            {/* Close Button */}
+                        {/* Image Section */}
+                        <div className="w-full md:w-2/5 relative h-64 md:h-auto">
+                            <img
+                                src={event.image}
+                                alt={event.title}
+                                className="absolute inset-0 w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent md:bg-gradient-to-r" />
                             <button
                                 onClick={onClose}
-                                className="absolute top-4 right-4 p-2 bg-white/90 rounded-full hover:bg-white transition-colors z-[10000] shadow-lg"
+                                className="absolute top-4 left-4 p-2 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full text-white transition-colors md:hidden"
                             >
-                                <X size={20} className="text-gray-800" />
+                                <ArrowLeft size={20} />
                             </button>
-
-                            {/* Title Overlay */}
-                            <div className="absolute bottom-0 left-0 right-0 p-6">
-                                <div className="flex items-start justify-between">
-                                    <h2 className="text-2xl font-bold text-white">{event.title}</h2>
-                                    <span className="px-3 py-1 bg-amber-500 text-white text-sm rounded-full whitespace-nowrap ml-4">
-                                        {event.category}
-                                    </span>
+                            <div className="absolute bottom-4 left-4 right-4 text-white md:hidden">
+                                <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500 text-white mb-2">
+                                    {event.category}
                                 </div>
+                                <h2 className="text-2xl font-bold leading-tight">{event.title}</h2>
                             </div>
                         </div>
 
-                        {/* Content */}
-                        <div className="p-6 overflow-y-auto max-h-[calc(80vh-12rem)]">
-                            {/* Description */}
-                            <div className="mb-6">
-                                <h3 className="text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide">Description</h3>
-                                <p className="text-gray-700 leading-relaxed">{event.description}</p>
+                        {/* Content Section */}
+                        <div className="flex-1 flex flex-col overflow-y-auto bg-white">
+                            {/* Header (Desktop) */}
+                            <div className="hidden md:block p-8 pb-0">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
+                                        {event.category}
+                                    </div>
+                                    <button
+                                        onClick={onClose}
+                                        className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"
+                                    >
+                                        <X size={24} />
+                                    </button>
+                                </div>
+                                <h2 className="text-3xl font-bold text-gray-900 mb-2">{event.title}</h2>
+                                <div className="flex items-center gap-2 text-gray-500">
+                                    <MapPin size={18} />
+                                    <span>{event.location}</span>
+                                </div>
                             </div>
 
-                            {/* Details Grid */}
-                            <div className="grid grid-cols-2 gap-4 mb-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-amber-100 rounded-lg">
-                                        <Calendar size={18} className="text-amber-600" />
-                                    </div>
-                                    <div>
-                                        <div className="text-xs text-gray-600">Date</div>
+                            <div className="p-6 md:p-8 space-y-8">
+                                {/* Quick Stats */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                                                <Calendar size={20} />
+                                            </div>
+                                            <span className="text-sm text-gray-500">Date & Time</span>
+                                        </div>
                                         <div className="font-medium text-gray-900">{event.date}</div>
+                                        <div className="text-sm text-gray-500">{event.time}</div>
                                     </div>
-                                </div>
-
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-blue-100 rounded-lg">
-                                        <MapPin size={18} className="text-blue-600" />
-                                    </div>
-                                    <div>
-                                        <div className="text-xs text-gray-600">Location</div>
-                                        <div className="font-medium text-gray-900">{event.location}</div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-green-100 rounded-lg">
-                                        <Users size={18} className="text-green-600" />
-                                    </div>
-                                    <div>
-                                        <div className="text-xs text-gray-600">Participants</div>
+                                    <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="p-2 bg-green-100 text-green-600 rounded-lg">
+                                                <Users size={20} />
+                                            </div>
+                                            <span className="text-sm text-gray-500">Participants</span>
+                                        </div>
                                         <div className="font-medium text-gray-900">
                                             {event.participants} / {event.maxParticipants}
+                                        </div>
+                                        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                                            <div
+                                                className="bg-green-500 h-1.5 rounded-full"
+                                                style={{ width: `${(event.participants / event.maxParticipants) * 100}%` }}
+                                            />
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-purple-100 rounded-lg">
-                                        <Hash size={18} className="text-purple-600" />
-                                    </div>
-                                    <div>
-                                        <div className="text-xs text-gray-600">Event ID</div>
-                                        <div className="font-mono text-xs text-gray-900">{event.id.substring(0, 12)}...</div>
-                                    </div>
+                                {/* Description */}
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-3">About Event</h3>
+                                    <p className="text-gray-600 leading-relaxed">
+                                        {event.description}
+                                    </p>
                                 </div>
-                            </div>
 
-                            {/* Tags */}
-                            {event.tags && event.tags.length > 0 && (
-                                <div className="mb-6">
-                                    <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Tags</h3>
+                                {/* Tags */}
+                                <div>
+                                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Tags</h3>
                                     <div className="flex flex-wrap gap-2">
-                                        {event.tags.map((tag, index) => (
-                                            <span
-                                                key={index}
-                                                className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
-                                            >
+                                        {event.tags.map((tag: string) => (
+                                            <span key={tag} className="px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-sm font-medium">
                                                 {tag}
                                             </span>
                                         ))}
                                     </div>
                                 </div>
-                            )}
 
-                            {/* Organizer & Additional Info */}
-                            <div className="border-t border-gray-200 pt-4">
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                    {event.organizer && (
-                                        <div>
-                                            <div className="text-gray-600 mb-1">Organizer</div>
-                                            <div className="font-medium text-gray-900">{event.organizer}</div>
-                                        </div>
-                                    )}
-                                    {event.time && (
-                                        <div>
-                                            <div className="text-gray-600 mb-1">Time</div>
-                                            <div className="font-medium text-gray-900">{event.time}</div>
-                                        </div>
-                                    )}
-                                    {event.recommendationScore && (
-                                        <div>
-                                            <div className="text-gray-600 mb-1">Match Score</div>
-                                            <div className="font-medium text-amber-600">{event.recommendationScore}%</div>
-                                        </div>
-                                    )}
+                                {/* Organizer */}
+                                <div className="flex items-center gap-4 p-4 rounded-2xl bg-amber-50 border border-amber-100">
+                                    <div className="w-12 h-12 rounded-full bg-amber-200 flex items-center justify-center text-amber-700 font-bold text-xl">
+                                        {event.organizer ? event.organizer[0] : 'O'}
+                                    </div>
+                                    <div>
+                                        <div className="text-sm text-gray-500">Organized by</div>
+                                        <div className="font-bold text-gray-900">{event.organizer || 'Unknown'}</div>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Action Buttons */}
-                            <div className="mt-6 flex gap-3">
-                                <button className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all">
-                                    Join Event
-                                </button>
-                                <button className="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all">
-                                    Share
-                                </button>
+                            {/* Footer Action */}
+                            <div className="p-6 md:p-8 border-t border-gray-100 mt-auto bg-white sticky bottom-0">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div className="hidden md:block">
+                                        <div className="text-sm text-gray-500">Price</div>
+                                        <div className="text-2xl font-bold text-gray-900">Free</div>
+                                    </div>
+                                    {joined ? (
+                                        <button
+                                            onClick={handleLeaveEvent}
+                                            disabled={loading}
+                                            className="w-full md:w-auto px-8 py-4 rounded-xl bg-red-50 text-red-600 font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            {loading ? 'Processing...' : 'Leave Event'}
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={handleJoinEvent}
+                                            disabled={loading || event.participants >= event.maxParticipants}
+                                            className="w-full md:w-auto flex-1 px-8 py-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-lg shadow-amber-500/30 hover:shadow-xl hover:shadow-amber-500/40 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {loading ? (
+                                                'Joining...'
+                                            ) : event.participants >= event.maxParticipants ? (
+                                                'Event Full'
+                                            ) : (
+                                                <>
+                                                    Join Event
+                                                    <ArrowRight size={20} />
+                                                </>
+                                            )}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </motion.div>
-                </>
+                </div>
             )}
         </AnimatePresence>
     );

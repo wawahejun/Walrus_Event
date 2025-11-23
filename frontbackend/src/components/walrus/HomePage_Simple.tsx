@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'motion/react';
 import { Shield, Hammer, Compass, QrCode, Link as LinkIcon, Scale, ArrowRight, Sparkles } from 'lucide-react';
 import { cn } from '../ui/utils';
@@ -66,12 +66,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
     ];
 
     return (
-        <div className="h-full w-full flex flex-col overflow-y-auto no-scrollbar pb-24 bg-gradient-to-br from-white via-amber-50/30 to-white">
+        <div className="h-full w-full flex flex-col overflow-y-auto no-scrollbar pb-24 bg-gradient-to-br from-white via-amber-50/20 to-white">
             {/* Hero Section */}
-            <section className="min-h-[400px] flex items-center justify-center px-4 md:px-8 py-16 relative">
-                {/* Animated Background Elements */}
-                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    {[...Array(8)].map((_, i) => (
+            <section className="min-h-[600px] flex items-center justify-center px-4 md:px-8 py-20 relative">
+                {/* Animated Background - Very Subtle */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30">
+                    {[...Array(5)].map((_, i) => (
                         <motion.div
                             key={i}
                             className="absolute rounded-full"
@@ -83,69 +83,79 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                             }}
                             animate={{
                                 scale: [0, 1, 0],
-                                opacity: [0, 0.15, 0],
+                                opacity: [0, 0.1, 0],
                             }}
                             transition={{
-                                duration: 3 + Math.random() * 2,
+                                duration: 4 + Math.random() * 2,
                                 repeat: Infinity,
-                                delay: i * 0.3,
+                                delay: i * 0.5,
                             }}
                             style={{
-                                width: 100 + Math.random() * 100 + 'px',
-                                height: 100 + Math.random() * 100 + 'px',
-                                background: `radial-gradient(circle, ${i % 3 === 0 ? '#F59E0B' : i % 3 === 1 ? '#D97706' : '#FBBF24'
-                                    }40, transparent)`,
+                                width: 150 + Math.random() * 100 + 'px',
+                                height: 150 + Math.random() * 100 + 'px',
+                                background: `radial-gradient(circle, ${i % 2 === 0 ? '#F59E0B' : '#FBBF24'}30, transparent)`,
                             }}
                         />
                     ))}
                 </div>
 
-                <div className="relative z-10 text-center max-w-4xl mx-auto">
+                {/* Content */}
+                <div className="relative z-20 text-center max-w-5xl mx-auto w-full space-y-8">
+                    {/* Subtitle */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
-                        className="mb-6 flex items-center justify-center gap-2"
+                        className="flex items-center justify-center gap-2"
                     >
-                        <Sparkles className="text-amber-600" size={24} />
-                        <span className="text-sm font-mono text-amber-700 tracking-widest uppercase font-medium">
-                            Circle Soft ERP System
+                        <Sparkles className="text-amber-600" size={20} />
+                        <span className="text-sm font-mono text-amber-700 tracking-widest uppercase">
+                            Walrus Event Platform
                         </span>
-                        <Sparkles className="text-amber-600" size={24} />
+                        <Sparkles className="text-amber-600" size={20} />
                     </motion.div>
 
-                    <motion.h1
+                    {/* Main Title */}
+                    <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.1 }}
-                        className="text-5xl md:text-7xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-600"
                     >
-                        Decentralized
-                        <br />
-                        Identity & Privacy
-                    </motion.h1>
+                        <h1 className="text-5xl md:text-7xl font-bold leading-tight">
+                            <div className="mb-4">
+                                <span className="text-gray-900">Your Data</span>
+                                <span className="mx-4 text-amber-600">|</span>
+                                <span className="text-gray-900">Your Reputation</span>
+                            </div>
+                            <div className="text-orange-600">
+                                Your Control
+                            </div>
+                        </h1>
+                    </motion.div>
 
+                    {/* Description */}
                     <motion.p
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.2 }}
-                        className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed"
+                        className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed"
                     >
                         A privacy-first platform for managing your digital sovereignty.
                         Built on zero-knowledge proofs and decentralized governance.
                     </motion.p>
 
+                    {/* Buttons */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.3 }}
-                        className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+                        className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4"
                     >
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => onNavigate?.('home')}
-                            className="px-8 py-4 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-semibold shadow-[0_4px_20px_rgba(217,119,6,0.3)] hover:shadow-[0_8px_30px_rgba(217,119,6,0.4)] transition-all flex items-center gap-2"
+                            className="px-8 py-4 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
                         >
                             Get Started
                             <ArrowRight size={20} />
@@ -161,12 +171,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         </motion.button>
                     </motion.div>
 
-                    {/* Stats Bar */}
+                    {/* Stats */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.4 }}
-                        className="mt-16 grid grid-cols-3 gap-8 max-w-2xl mx-auto"
+                        className="grid grid-cols-3 gap-8 max-w-2xl mx-auto pt-12"
                     >
                         {[
                             { value: '10K+', label: 'Active Users' },
@@ -174,10 +184,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                             { value: '1M+', label: 'ZK Proofs' },
                         ].map((stat, i) => (
                             <div key={i} className="text-center">
-                                <div className="text-2xl md:text-3xl font-bold text-amber-600 mb-1">
+                                <div className="text-3xl font-bold text-amber-600 mb-1">
                                     {stat.value}
                                 </div>
-                                <div className="text-xs md:text-sm text-gray-500 uppercase tracking-wider">
+                                <div className="text-sm text-gray-500 uppercase tracking-wider">
                                     {stat.label}
                                 </div>
                             </div>
@@ -186,8 +196,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 </div>
             </section>
 
-            {/* Features Grid - Simple Version Without Canvas */}
-            <section className="px-4 md:px-8 py-16">
+            {/* Features Grid */}
+            <section className="px-4 md:px-8 py-20 bg-white/50">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}

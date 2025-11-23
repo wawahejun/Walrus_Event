@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown } from 'lucide-react';
 import { FloatingNav } from './components/walrus/FloatingNav';
-import { HomePage } from './components/walrus/HomePage';
+import { HomePage } from './components/walrus/HomePage_Simple';
 import { SovereigntyCenter } from './components/walrus/SovereigntyCenter';
 import PrivacyDiscovery from './components/walrus/PrivacyDiscovery';
 import { EventForge } from './components/walrus/EventForge';

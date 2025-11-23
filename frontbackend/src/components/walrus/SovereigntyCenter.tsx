@@ -332,10 +332,14 @@ export const SovereigntyCenter = () => {
       </div >
 
       {/* Modals */}
-      < EventDetailModal
+      <EventDetailModal
         event={selectedEvent}
         isOpen={showDetailModal}
         onClose={() => setShowDetailModal(false)}
+        onEventUpdate={(updatedEvent) => {
+          // Refresh the event list to get updated participant counts
+          setRefreshTrigger(prev => prev + 1);
+        }}
       />
 
       < EventEditModal

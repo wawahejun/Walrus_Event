@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ParallaxScrollSecond } from '../ui/parallax-scroll';
 import { ArrowRight, Users, Calendar, MapPin, Clock, Sparkles, TrendingUp, ClockIcon } from 'lucide-react';
 import { EventDetailModal } from './EventDetailModal';
@@ -32,7 +32,7 @@ const mockActivityPool: Activity[] = [
     description: 'Learn the fundamentals of zero-knowledge proofs and homomorphic encryption to protect your data privacy',
     image: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
     category: 'Workshop',
-    date: '2024-01-15',
+    date: '2025-12-15',
     location: 'Virtual Meeting',
     participants: 45,
     maxParticipants: 100,
@@ -48,7 +48,7 @@ const mockActivityPool: Activity[] = [
     description: 'Explore data ownership and decentralized identity authentication in the Web3 era',
     image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1280&h=720&fit=crop&auto=format&q=80',
     category: 'Seminar',
-    date: '2024-01-18',
+    date: '2025-12-18',
     location: 'Web3 Hub',
     participants: 89,
     maxParticipants: 150,
@@ -64,7 +64,7 @@ const mockActivityPool: Activity[] = [
     description: 'Experience the application of zero-knowledge proofs in anonymous voting scenarios',
     image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1280&h=720&fit=crop&auto=format&q=80',
     category: 'Experience',
-    date: '2024-01-20',
+    date: '2026-01-20',
     location: 'Privacy Computing Lab',
     participants: 23,
     maxParticipants: 50,
@@ -80,7 +80,7 @@ const mockActivityPool: Activity[] = [
     description: '24-hour hackathon to develop innovative privacy protection solutions',
     image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1280&h=720&fit=crop&auto=format&q=80',
     category: 'Hackathon',
-    date: '2024-01-25',
+    date: '2026-01-25',
     location: 'CircleSoft Headquarters',
     participants: 156,
     maxParticipants: 200,
@@ -96,7 +96,7 @@ const mockActivityPool: Activity[] = [
     description: 'Learn about the latest decentralized identity authentication technologies',
     image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=1280&h=720&fit=crop&auto=format&q=80',
     category: 'Demo',
-    date: '2024-01-16',
+    date: '2026-01-16',
     location: 'Online Demo',
     participants: 67,
     maxParticipants: 80,
@@ -112,7 +112,7 @@ const mockActivityPool: Activity[] = [
     description: 'Learn how to use differential privacy for data analysis while protecting privacy',
     image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1280&h=720&fit=crop&auto=format&q=80',
     category: 'Training',
-    date: '2024-01-22',
+    date: '2026-01-22',
     location: 'Online Course',
     participants: 34,
     maxParticipants: 60,
@@ -128,7 +128,7 @@ const mockActivityPool: Activity[] = [
     description: 'Explore privacy infrastructure in Web3 ecosystem including computing, storage and protocols',
     image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1280&h=720&fit=crop&auto=format&q=80',
     category: 'Sharing',
-    date: '2024-01-19',
+    date: '2026-01-19',
     location: 'Web3DAO',
     participants: 78,
     maxParticipants: 100,
@@ -137,33 +137,61 @@ const mockActivityPool: Activity[] = [
     time: '18:00-20:00',
     duration: '2 Hours',
     organizer: 'Web3DAO Technical Committee'
+  },
+  {
+    id: '8',
+    title: 'Zero Knowledge Proof Workshop',
+    description: 'Hands-on workshop on implementing ZK circuits using Circom and SnarkJS',
+    image: 'https://images.unsplash.com/photo-1639322537228-f710d846310a?w=1280&h=720&fit=crop&auto=format&q=80',
+    category: 'Workshop',
+    date: '2026-02-05',
+    location: 'DevHub',
+    participants: 42,
+    maxParticipants: 60,
+    tags: ['ZK', 'Circom', 'Cryptography', 'Coding'],
+    recommendationScore: 94,
+    time: '13:00-17:00',
+    duration: '4 Hours',
+    organizer: 'ZK Builders'
+  },
+  {
+    id: '9',
+    title: 'Privacy in AI Conference',
+    description: 'Discussing the intersection of Artificial Intelligence and Privacy Protection',
+    image: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=1280&h=720&fit=crop&auto=format&q=80',
+    category: 'Conference',
+    date: '2026-02-12',
+    location: 'Tech Center',
+    participants: 210,
+    maxParticipants: 300,
+    tags: ['AI', 'Privacy', 'Ethics', 'Future Tech'],
+    recommendationScore: 91,
+    time: '09:00-18:00',
+    duration: '9 Hours',
+    organizer: 'AI Ethics Board'
   }
 ];
 
 const getMockActivities = (): Activity[] => mockActivityPool.map(activity => ({ ...activity }));
 
 const ensureVariedActivities = (baseActivities: Activity[], desiredCount = 9): Activity[] => {
+  // If we have enough base activities, just return them
+  if (baseActivities.length >= desiredCount) {
+    return baseActivities.slice(0, desiredCount);
+  }
+
   const enriched = [...baseActivities];
   const existingIds = new Set(enriched.map(activity => activity.id));
   const mockPool = getMockActivities();
-  let poolIndex = 0;
 
-  while (enriched.length < desiredCount && poolIndex < mockPool.length) {
-    const mock = mockPool[poolIndex];
-    let generatedId = mock.id;
+  // Filter out mock activities that are already in the base set (by title/content similarity if needed, but here just ID)
+  const availableMocks = mockPool.filter(m => !existingIds.has(m.id));
 
-    while (existingIds.has(generatedId)) {
-      generatedId = `mock-${mock.id}-${poolIndex}-${Math.random().toString(36).slice(2, 6)}`;
-    }
-
-    existingIds.add(generatedId);
-    enriched.push({
-      ...mock,
-      id: generatedId,
-      recommendationScore: mock.recommendationScore ?? 85 + Math.floor(Math.random() * 15),
-    });
-
-    poolIndex += 1;
+  // Add available mocks until we reach desired count or run out of mocks
+  for (const mock of availableMocks) {
+    if (enriched.length >= desiredCount) break;
+    enriched.push(mock);
+    existingIds.add(mock.id);
   }
 
   return enriched;
@@ -172,17 +200,24 @@ const ensureVariedActivities = (baseActivities: Activity[], desiredCount = 9): A
 const PrivacyDiscovery: React.FC = () => {
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [showActivityDetail, setShowActivityDetail] = useState(false);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Initialize with mock data to ensure immediate visibility
+  const [activities, setActivities] = useState<Activity[]>(ensureVariedActivities(getMockActivities()));
 
   // Fetch events from backend API
   useEffect(() => {
     const fetchEvents = async () => {
       try {
+        console.log("Fetching events...");
         const response = await fetch('http://localhost:8000/api/v1/events?limit=20');
-        const data = await response.json();
 
-        if (data.status === 'success' && data.events && data.events.length > 0) {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("Events data:", data);
+
+        if (data.status === 'success' && Array.isArray(data.events)) {
           // Transform backend events to Activity format
           const transformedActivities: Activity[] = data.events.map((event: any) => ({
             id: event.event_id,
@@ -192,7 +227,7 @@ const PrivacyDiscovery: React.FC = () => {
             category: event.event_type,
             date: new Date(event.start_time).toISOString().split('T')[0],
             location: event.location || 'Virtual',
-            participants: event.participants_count,
+            participants: event.participants_count || 0,
             maxParticipants: event.max_participants,
             tags: event.tags || [event.event_type, 'Privacy', 'Web3'],
             recommendationScore: 85 + Math.floor(Math.random() * 15),
@@ -201,17 +236,16 @@ const PrivacyDiscovery: React.FC = () => {
             organizer: event.organizer_id ? event.organizer_id.substring(0, 10) + '...' : 'Unknown'
           }));
 
+          console.log("Transformed activities:", transformedActivities);
           setActivities(ensureVariedActivities(transformedActivities));
         } else {
-          // No events from API, use mock data
+          console.warn("Invalid data format from API, using mocks");
           setActivities(ensureVariedActivities(getMockActivities()));
         }
       } catch (error) {
         console.error('Failed to fetch events:', error);
         // Fallback to mock data if API fails
         setActivities(ensureVariedActivities(getMockActivities()));
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -227,14 +261,7 @@ const PrivacyDiscovery: React.FC = () => {
   const newActivities = activities.slice(-3);
   const popularInArea = activities.filter(a => a.tags.includes('Web3') || a.tags.includes('隐私保护')).slice(0, 4);
 
-
-
-  const closeActivityDetail = () => {
-    setShowActivityDetail(false);
-    setSelectedActivity(null);
-  };
-
-  const parallaxScrollImages = newActivities.map((activity, index) =>
+  const parallaxScrollImages = newActivities.map((activity) =>
     activity.image
   );
 
@@ -387,7 +414,7 @@ const PrivacyDiscovery: React.FC = () => {
             <ParallaxScrollSecond
               images={parallaxScrollImages}
               imageData={newActivities}
-              onImageClick={(data, index) => {
+              onImageClick={(data) => {
                 handleActivityClick(data);
               }}
             />
@@ -520,106 +547,17 @@ const PrivacyDiscovery: React.FC = () => {
         </section>
       </div>
 
-      <AnimatePresence>
-        {showActivityDetail && selectedActivity && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-            onClick={closeActivityDetail}
-          >
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="flex justify-between items-start mb-6">
-                <div className="w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center">
-                  <Sparkles className="w-8 h-8 text-white" />
-                </div>
-                <button
-                  onClick={closeActivityDetail}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="mb-6">
-                <img
-                  src={selectedActivity.image}
-                  alt={selectedActivity.title}
-                  className="w-full h-64 object-cover rounded-xl mb-4"
-                />
-                <h3 className="text-3xl font-bold text-gray-800 mb-2">
-                  {selectedActivity.title}
-                </h3>
-                <p className="text-gray-800 mb-4">
-                  {selectedActivity.description}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Calendar className="w-5 h-5 text-amber-600" />
-                  <span className="font-medium">Date:</span> {selectedActivity.date}
-                </div>
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Clock className="w-5 h-5 text-amber-600" />
-                  <span className="font-medium">Time:</span> {selectedActivity.time}
-                </div>
-                <div className="flex items-center gap-2 text-gray-700">
-                  <MapPin className="w-5 h-5 text-amber-600" />
-                  <span className="font-medium">Location:</span> {selectedActivity.location}
-                </div>
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Users className="w-5 h-5 text-amber-600" />
-                  <span className="font-medium">Participants:</span> {selectedActivity.participants}/{selectedActivity.maxParticipants}
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <h4 className="font-bold text-gray-800 mb-2">Organizer:</h4>
-                <p className="text-gray-800">{selectedActivity.organizer}</p>
-              </div>
-
-              <div className="mb-6">
-                <h4 className="font-bold text-gray-800 mb-2">Tags:</h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedActivity.tags.map(tag => (
-                    <span key={tag} className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={closeActivityDetail}
-                  className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-medium hover:bg-gray-300 transition-all duration-300"
-                >
-                  Close
-                </button>
-                <button
-                  className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 rounded-lg font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-300"
-                >
-                  Register Now
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Inline modal removed in favor of EventDetailModal */}
 
       {/* Event Detail Modal - New Component */}
       <EventDetailModal
         event={selectedActivity}
         isOpen={showActivityDetail}
         onClose={() => setShowActivityDetail(false)}
+        onEventUpdate={(updatedEvent) => {
+          setActivities(prev => prev.map(a => a.id === updatedEvent.id ? updatedEvent : a));
+          setSelectedActivity(updatedEvent);
+        }}
       />
     </div>
   );

@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Query, Depends, File, UploadFile
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 import os
 import uuid
 from pathlib import Path
@@ -200,6 +201,12 @@ async def list_events(
         # 构建响应
         events_data = []
         for event in paginated_events:
+            # Query participant count
+            from sqlalchemy import func
+            from app.models import Participant
+            stmt = select(func.count()).select_from(Participant).where(Participant.event_id == event.event_id)
+            count = await db.scalar(stmt) or 0
+
             events_data.append({
                 "event_id": event.event_id,
                 "title": event.title,
@@ -208,7 +215,7 @@ async def list_events(
                 "start_time": event.start_time.isoformat(),
                 "end_time": event.end_time.isoformat(),
                 "location": event.location,
-                "participants_count": 0,  # TODO: Implement participant tracking
+                "participants_count": count,
                 "max_participants": event.max_participants,
                 "created_at": event.created_at.isoformat(),
                 "cover_image": event.cover_image,
@@ -356,6 +363,12 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
             
+        # Query participant count
+        from sqlalchemy import func
+        from app.models import Participant
+        stmt = select(func.count()).select_from(Participant).where(Participant.event_id == event.event_id)
+        count = await db.scalar(stmt) or 0
+
         return {
             "status": "success",
             "event": {
@@ -368,7 +381,7 @@ async def get_event_detail(event_id: str, db: AsyncSession = Depends(get_db)):
                 "end_time": event.end_time.isoformat(),
                 "location": event.location,
                 "max_participants": event.max_participants,
-                "current_participants": 0, # TODO
+                "current_participants": count,
                 "is_encrypted": False,
                 "storage_commitment": None,
                 "created_at": event.created_at.isoformat(),
@@ -602,8 +615,37 @@ async def encrypt_event(event_id: str):
 
 
 
+from pydantic import BaseModel, Field
+
+
+class JoinEventRequest(BaseModel):
+    user_id: str
+    public_key: str = ""
+
+
+@router.post("/{event_id}/join")
+async def join_event(event_id: str, request: JoinEventRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Join an event (simplified endpoint for frontend)
+    
+    Args:
+        event_id: Event ID
+        request: Join request with user_id and public_key
+    """
+    try:
+        success = await event_manager.add_participant(db, event_id, request.user_id)
+        return {
+            "status": "success",
+            "event_id": event_id,
+            "user_id": request.user_id,
+            "joined": success
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/{event_id}/participants/add")
-async def add_participant(event_id: str, user_id: str):
+async def add_participant(event_id: str, user_id: str, db: AsyncSession = Depends(get_db)):
     """
     添加参与者
 
@@ -612,13 +654,39 @@ async def add_participant(event_id: str, user_id: str):
         user_id: 用户ID
     """
     try:
-        success = event_manager.add_participant(event_id, user_id)
+        success = await event_manager.add_participant(db, event_id, user_id)
         return {
             "status": "success",
             "event_id": event_id,
             "user_id": user_id,
             "added": success
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{event_id}/leave")
+async def leave_event(event_id: str, request: JoinEventRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Leave an event (remove participant)
+    
+    Args:
+        event_id: Event ID
+        request: Leave request with user_id
+    """
+    try:
+        success = await event_manager.remove_participant(db, event_id, request.user_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Participant not found or already left")
+        
+        return {
+            "status": "success",
+            "event_id": event_id,
+            "user_id": request.user_id,
+            "left": success
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

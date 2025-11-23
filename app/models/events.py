@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Integer, DateTime, Text, ARRAY
+from sqlalchemy import Column, String, Integer, DateTime, Text, ARRAY, ForeignKey
+from sqlalchemy.orm import relationship
 from app.core.postgres import Base
 from datetime import datetime, timezone
 
@@ -20,3 +21,17 @@ class Event(Base):
     tags = Column(ARRAY(String), nullable=True)  # Event tags
     created_at = Column(DateTime(timezone=False), default=lambda: datetime.now())
     updated_at = Column(DateTime(timezone=False), default=lambda: datetime.now(), onupdate=lambda: datetime.now())
+
+    # Relationship
+    participants = relationship("Participant", back_populates="event", cascade="all, delete-orphan")
+
+
+class Participant(Base):
+    __tablename__ = "participants"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(String, ForeignKey("events.event_id"))
+    user_id = Column(String, index=True)
+    joined_at = Column(DateTime(timezone=False), default=lambda: datetime.now())
+
+    event = relationship("Event", back_populates="participants")
