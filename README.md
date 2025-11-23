@@ -2,33 +2,33 @@
 
 ## 🌟 Vision
 
-Walrus Events is building the **event infrastructure for the Web3 era**, providing **privacy-preserving, user-sovereign, and verifiable** event experiences for users!
+Walrus Events explores privacy-preserving event infrastructure for Web3, aiming to provide user-controlled and verifiable event experiences.
 
 ## 🚀 Overview
 
-Walrus Events revolutionizes the event industry by putting users in control of their data through decentralized storage, zero-knowledge proofs, and blockchain-based verification. Our platform ensures that users truly own their event data while maintaining privacy and interoperability across platforms.
+This project experiments with putting users in control of their event data through decentralized storage, zero-knowledge proofs, and blockchain-based verification. The platform attempts to ensure users maintain ownership of their event data while exploring privacy and interoperability concepts.
 
 ## 🔑 Key Features
 
-### 🏛️ User Sovereignty
-- **True Data Ownership**: Users control their event data, not platforms
-- **Decentralized Storage**: Data stored on Walrus network with cryptographic proofs
-- **Portable Reputation**: Blockchain-based credentials that work across platforms
+### 🏛️ User Data Control
+- **Data Ownership Experiments**: Exploring user control over event data
+- **Decentralized Storage**: Testing data storage on Walrus network with cryptographic proofs
+- **Reputation Portability**: Investigating blockchain-based credentials for cross-platform use
 
-### 🔒 Privacy Protection
-- **Zero-Knowledge Proofs**: Verify attendance without revealing personal information
-- **End-to-End Encryption**: All user data encrypted before storage
-- **Differential Privacy**: Statistical analysis without compromising individual privacy
+### 🔒 Privacy Exploration
+- **Zero-Knowledge Proofs**: Experimenting with verification without revealing personal information
+- **End-to-End Encryption**: Testing encryption methods for user data storage
+- **Differential Privacy**: Exploring statistical analysis while protecting individual privacy
 
-### 🧠 Intelligent Systems
-- **Markov Chain Analysis**: Model user behavior states to intelligently upgrade reputation levels
-- **Federated Learning**: Personalized recommendations without data collection
-- **Privacy-Preserving Discovery**: Find events that match your interests without exposing your preferences
+### 🧠 Research Systems
+- **Markov Chain Analysis**: Testing behavior state modeling for reputation systems
+- **Federated Learning**: Experimenting with personalized recommendations without data collection
+- **Privacy-Preserving Discovery**: Researching event matching without exposing preferences
 
-### ⛓️ Web3 Native
-- **Blockchain Verification**: All credentials and achievements verifiable on-chain
-- **Censorship-Resistant**: Decentralized infrastructure prevents content takedowns
-- **Compliance by Design**: Privacy rules encoded in smart contracts
+### ⛓️ Web3 Integration
+- **Blockchain Verification**: Testing on-chain credential verification
+- **Decentralized Infrastructure**: Exploring censorship resistance through distribution
+- **Smart Contract Compliance**: Experimenting with programmable privacy rules
 
 ## 🏗️ Architecture
 
@@ -143,70 +143,51 @@ Attendance → System Recording → Update Reputation NFT
         Use ZK Proofs for Privileges on Other Platforms
 ```
 
-## 🔐 Privacy Comparison
+## 🔐 Privacy Approach Comparison
 
-| Traditional Platform | Walrus Events |
+| Traditional Platform | Walrus Events Research |
 |---------------------|---------------|
-| Platform owns event data | ✅ **User owns data** |
-| Plain text user info | ✅ **End-to-end encryption** |
-| Platform controls verification | ✅ **Zero-knowledge verification** |
-| Reputation locked to platform | ✅ **On-chain verifiable + cross-platform** |
-| Recommendations require data collection | ✅ **Local computation + federated recommendation** |
-| May sell user data | ✅ **Inaccessible (encrypted)** |
-| Opaque compliance | ✅ **On-chain verifiable compliance** |
-| Platform can censor events | ✅ **Censorship-resistant (decentralized)** |
+| Platform controls event data | Exploring user data control |
+| Plain text user info | Testing end-to-end encryption |
+| Platform manages verification | Experimenting with zero-knowledge verification |
+| Reputation locked to platform | Investigating on-chain reputation portability |
+| Recommendations need data collection | Researching privacy-preserving recommendations |
+| Centralized data control | Testing decentralized data ownership |
+| Opaque compliance | Exploring programmable compliance |
 
-## 💡 Innovations
+## 💡 Research Areas
 
-1. **User Data Sovereignty**: First platform where users truly own their event data (not just "can export")
-2. **Markov Chain Reputation Modeling**: Uses Markov chains to analyze user behavior state transitions, intelligently upgrading reputation levels
-3. **Differential Privacy Enhancement**: Adds noise to recommendations and aggregated statistics to prevent reverse engineering of personal data
-4. **Three-Technology Fusion**: Seal + Sui + Walrus for privacy protection, high-performance storage, and verifiable computation
-5. **Zero-Knowledge Event Discovery**: Markov prediction + differential privacy aggregation = personalized recommendations without collecting user data
-6. **Federated Learning Recommendations**: Local computation + global model = privacy-preserving collaborative filtering
-7. **Privacy as Code**: Compliance rules that are programmable, auditable, and governable
-8. **Censorship-Resistant Event Platform**: Decentralized storage + on-chain verification = true freedom of expression
+1. **User Data Control Experiments**: Testing approaches where users maintain control over their event data
+2. **Markov Chain Reputation Modeling**: Researching behavior state transitions for reputation systems
+3. **Differential Privacy Applications**: Exploring noise addition for privacy protection in statistics
+4. **Technology Integration Research**: Combining Seal + Sui + Walrus for privacy and storage
+5. **Zero-Knowledge Event Discovery**: Investigating personalized recommendations without data collection
+6. **Federated Learning Applications**: Testing local computation with global model benefits
+7. **Programmable Compliance**: Researching compliance rules in smart contracts
+8. **Decentralized Platform Architecture**: Exploring censorship resistance through decentralization
 
-## 🎯 Hackathon Advantages
+## 🎯 Project Status
 
-| Evaluation Dimension | Our Advantages |
-|---------------------|----------------|
-| Technical Innovation | Four-technology fusion: Seal + Sui + Walrus + ZK, industry-leading |
-| Practicality | Solves real pain points: data sovereignty, privacy, reputation portability |
-| Completeness | 5 complete demo scenarios covering the entire event platform workflow |
-| Web3 Native | Fully decentralized, no single point of failure, censorship-resistant |
-| Privacy Protection | Zero-knowledge proofs protect user privacy while maintaining functionality |
-| Impact | Can change the event platform industry landscape, benefiting millions of users |
+This project represents ongoing research and development in privacy-preserving event platforms. The implementation explores various technologies and approaches, with results and findings documented throughout the development process.
 
-## 📦 Deliverables
+## 📦 Current Implementation
 
-1. ✅ **Runnable MVP System**: FastAPI + Sui + Walrus + Seal integration
-2. ✅ **5 Interactive Demo Scenarios**:
-   - Create privacy-preserving events
-   - Anonymous attendance with ZK verification
-   - On-chain reputation accumulation and cross-platform usage
-   - Personalized recommendations without data collection
-   - GDPR right to be forgotten implementation
-3. ✅ **Sui Move Smart Contracts**: Event ownership, ticket NFTs, reputation credentials, compliance badges
-4. ✅ **Technical Documentation**:
-   - Architecture design document
-   - API documentation (Postman collection)
-   - Deployment guide
-   - Seal integration guide
-5. ✅ **Demo Video** (5 minutes, showcasing all 5 demos)
-6. ✅ **Demo Day Live Presentation**: Real-time creation, attendance, and verification workflow
-7. ✅ **Open Source Code Repository**: Complete GitHub code + documentation
+- **Experimental System**: FastAPI + Sui + Walrus + Seal integration for testing
+- **Demo Scenarios**: 5 interactive scenarios covering platform workflows
+- **Smart Contracts**: Event ownership, ticket NFTs, reputation credentials for Sui network
+- **Documentation**: Architecture design, API documentation, deployment guides
+- **Open Source**: Complete codebase available for review and contribution
 
 ## 📝 Summary
 
-Walrus Events builds a truly user-owned event platform through **decentralized storage**, **zero-knowledge proofs**, **Markov chain analysis**, **differential privacy protection**, and **on-chain verifiable reputation**:
+Walrus Events explores building user-controlled event platforms through decentralized storage, zero-knowledge proofs, Markov chain analysis, differential privacy, and blockchain-based verification. The project aims to research:
 
-✅ **User Sovereignty**: Users own event data, not platforms
-✅ **Privacy Protection**: Zero-knowledge proofs verify without revealing information
-✅ **Intelligent Reputation**: Markov chains model user behavior states, automatically upgrading reputation levels
-✅ **Private Recommendations**: Differential privacy aggregation + federated learning = personalization without data collection
-✅ **Decentralized**: No single point of failure, censorship-resistant
-✅ **Built-in Compliance**: Privacy as code, automatically enforced
-✅ **Web3 Native**: Fully based on on-chain verification and storage
+- **User Data Control**: Exploring user ownership of event data
+- **Privacy Protection**: Testing zero-knowledge verification methods
+- **Reputation Systems**: Investigating behavior modeling for reputation
+- **Private Recommendations**: Researching personalization without data collection
+- **Decentralization**: Testing distributed infrastructure approaches
+- **Compliance Research**: Exploring programmable privacy rules
+- **Web3 Integration**: Experimenting with on-chain verification
 
-This platform will become the **event infrastructure for the Web3 era**, providing **privacy-preserving, user-sovereign, and verifiable** event experiences for users!
+This represents ongoing research into privacy-preserving event platform technologies and approaches.
