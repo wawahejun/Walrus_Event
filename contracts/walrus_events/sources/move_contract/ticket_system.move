@@ -15,6 +15,11 @@ module walrus_events::ticket_system {
     use sui::coin::{Self, Coin};
     use sui::sui::SUI;
     use sui::balance::{Self, Balance};
+    use sui::package;
+    use sui::display;
+
+    // ====== OTW ======
+    public struct TICKET_SYSTEM has drop {}
 
     // ====== Errors ======
     const EEventFull: u64 = 3;
@@ -81,6 +86,34 @@ module walrus_events::ticket_system {
     public struct TicketListed has copy, drop {
         seller: address,
         price: u64,
+    }
+
+    // ====== Init ======
+
+    fun init(otw: TICKET_SYSTEM, ctx: &mut TxContext) {
+        let keys = vector[
+            string::utf8(b"name"),
+            string::utf8(b"image_url"),
+            string::utf8(b"description"),
+            string::utf8(b"project_url"),
+        ];
+
+        let values = vector[
+            string::utf8(b"Walrus Event Ticket #{ticket_number}"),
+            string::utf8(b"{metadata_uri}"),
+            string::utf8(b"Access ticket for Walrus Event: {event_id}"),
+            string::utf8(b"https://walrus.events"),
+        ];
+
+        let publisher = package::claim(otw, ctx);
+        let mut display = display::new_with_fields<EventTicket>(
+            &publisher, keys, values, ctx
+        );
+
+        display::update_version(&mut display);
+
+        transfer::public_transfer(publisher, tx_context::sender(ctx));
+        transfer::public_transfer(display, tx_context::sender(ctx));
     }
 
     // ====== Public Functions ======
@@ -252,5 +285,21 @@ module walrus_events::ticket_system {
 
     public fun is_soulbound(ticket: &EventTicket): bool {
         ticket.is_soulbound
+    }
+
+    /// Burn ticket (e.g. when leaving event)
+    public fun burn_ticket(ticket: EventTicket) {
+        let EventTicket { 
+            id, 
+            event_id: _, 
+            ticket_number: _, 
+            attendee: _, 
+            is_soulbound: _, 
+            checked_in: _, 
+            minted_at: _, 
+            metadata_uri: _, 
+            zk_proof_hash: _ 
+        } = ticket;
+        object::delete(id);
     }
 }

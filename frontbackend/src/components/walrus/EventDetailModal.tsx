@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, MapPin, Users, ArrowLeft, ExternalLink, Shield, Ticket, Share2, CheckCircle, Loader2 } from 'lucide-react';
 import { Activity } from './PrivacyDiscovery';
+import { useSuiAnchor } from '../../hooks/useSuiAnchor';
 import { useTicketSystem } from '../../hooks/useTicketSystem';
 import { useCurrentAccount, useSuiClient } from '@mysten/dapp-kit';
 
@@ -15,11 +16,12 @@ interface EventDetailModalProps {
 export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpen, onClose, onEventUpdate }) => {
     const [joined, setJoined] = useState(false);
     const [loading, setLoading] = useState(false);
-    const { mintTicket, buyTicket, generateAndVerifyZKProof, isMinting, isVerifyingZK } = useTicketSystem();
-    // const client = useSuiClient();
+    const account = useCurrentAccount();
+    const client = useSuiClient();
+    const { anchorToBlockchain } = useSuiAnchor();
+    const { buyTicket, burnTicket, generateAndVerifyZKProof, isMinting, isVerifyingZK } = useTicketSystem();
     const [ticketId, setTicketId] = useState<string | null>(null);
     const [zkVerified, setZkVerified] = useState(false);
-    const account = useCurrentAccount();
     const hasPackageId = !!import.meta.env.VITE_SUI_PACKAGE_ID;
 
     useEffect(() => {
@@ -30,16 +32,13 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpe
         }
     }, [isOpen, event]);
 
-    if (!isOpen || !event) return null;
-
     // Fetch user's ticket for this event
-    // Fetch user's ticket for this event
-    /*
     useEffect(() => {
         const fetchTicket = async () => {
-            if (!account || !event || !joined || !client || !hasPackageId) {
-                setTicketId(null); // Reset ticketId if conditions are not met
-                setZkVerified(false); // Reset ZK verification status
+            // Check all required conditions including client availability
+            if (!account || !event || !joined || !hasPackageId || !client) {
+                setTicketId(null);
+                setZkVerified(false);
                 return;
             }
 
@@ -61,7 +60,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpe
                     setTicketId(ticket.data.objectId);
                     // Check if already verified
                     if (ticket.data.content && (ticket.data.content as any).fields.zk_proof_hash) {
-                        setZkVerified(true); // Set to true if proof hash exists
+                        setZkVerified(true);
                     } else {
                         setZkVerified(false);
                     }
@@ -78,7 +77,8 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpe
 
         fetchTicket();
     }, [account, event, joined, client, hasPackageId]);
-    */
+
+    if (!isOpen || !event) return null;
 
     const handleJoinEvent = async () => {
         setLoading(true);
@@ -108,17 +108,27 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpe
                 }
 
                 // Mint NFT Ticket if wallet is connected and contract deployed
+                console.log('=== Join Event DEBUG ===');
+                console.log('Account:', account?.address);
+                console.log('Has Package ID:', hasPackageId);
+                console.log('Package ID value:', import.meta.env.VITE_SUI_PACKAGE_ID);
+                console.log('Event price:', (event as any).price);
+
                 if (account && hasPackageId) {
                     try {
                         console.log("Starting Ticket Purchase & ZK Flow...");
 
-                        // 1. Buy Ticket (Pay SUI)
-                        // For demo, we assume price is 0.1 SUI (100000000 MIST)
-                        // In real app, price comes from event data
-                        const price = 100000000;
-                        const organizer = "0x19ad2b3379d7bed27e528eac49bca2327ba465f7188225a3e4522e11f966d93b"; // Demo organizer
+                        // Get price from event data, default to free (0) if not set
+                        const price = (event as any).price || 0;
+                        // Use event organizer address if available, otherwise fallback to current user (only for testing)
+                        const organizer = (event as any).organizerAddress || account.address;
+                        const imageUrl = (event as any).image || (event as any).cover_image || "walrus://premium-ticket";
 
-                        const ticketResult = await buyTicket(event.id, price, organizer);
+                        console.log(`Buying ticket for event ${event.id}, price: ${price} MIST`);
+                        console.log(`Payment recipient (Organizer): ${organizer}`);
+                        console.log(`Ticket Image: ${imageUrl}`);
+
+                        const ticketResult = await buyTicket(event.id, price, organizer, imageUrl);
                         console.log("Ticket Purchased:", ticketResult);
                         alert("✅ Payment Successful! Ticket NFT Minted.");
 
@@ -131,6 +141,12 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpe
                         console.error("Failed to process ticket:", mintError);
                         alert("Transaction failed. See console for details.");
                     }
+                } else {
+                    console.warn('Skipping blockchain minting:', {
+                        hasAccount: !!account,
+                        hasPackageId,
+                        reason: !account ? 'No wallet connected' : 'Package ID not configured'
+                    });
                 }
             }
 
@@ -209,6 +225,41 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpe
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.detail || 'Failed to leave event');
+                }
+
+                // Burn NFT Ticket if wallet is connected
+                if (account && hasPackageId) {
+                    try {
+                        console.log("Checking for tickets to burn...");
+                        const { data: objects } = await client.getOwnedObjects({
+                            owner: account.address,
+                            filter: {
+                                StructType: `${import.meta.env.VITE_SUI_PACKAGE_ID}::ticket_system::EventTicket`
+                            },
+                            options: { showContent: true }
+                        });
+
+                        const ticketsToBurn = objects.filter((obj: any) => {
+                            const content = obj.data?.content;
+                            return content?.dataType === 'moveObject' && content.fields.event_id === event.id;
+                        });
+
+                        if (ticketsToBurn.length > 0) {
+                            console.log(`Found ${ticketsToBurn.length} tickets to burn`);
+                            // Burn all found tickets
+                            for (const ticket of ticketsToBurn) {
+                                if (ticket.data?.objectId) {
+                                    await burnTicket(ticket.data.objectId);
+                                }
+                            }
+                            alert(`Burned ${ticketsToBurn.length} ticket(s) from your wallet.`);
+                        } else {
+                            console.log("No tickets found for this event.");
+                        }
+                    } catch (burnError) {
+                        console.error("Failed to burn tickets:", burnError);
+                        // Don't block leaving event if burn fails
+                    }
                 }
             }
 
@@ -487,7 +538,12 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({ event, isOpe
                                         <div className="text-sm text-gray-500">Price</div>
                                         <div className="text-2xl font-bold text-gray-900">
                                             {(event as any).price && (event as any).price > 0
-                                                ? `${((event as any).price / 1000000000).toFixed(2)} SUI`
+                                                ? (() => {
+                                                    const suiValue = (event as any).price / 1000000000;
+                                                    // Show more decimals for small amounts
+                                                    const decimals = suiValue < 0.01 ? 6 : 2;
+                                                    return `${suiValue.toFixed(decimals)} SUI`;
+                                                })()
                                                 : 'Free'}
                                         </div>
                                     </div>

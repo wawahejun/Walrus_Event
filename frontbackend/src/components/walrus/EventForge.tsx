@@ -6,6 +6,7 @@ import { useSuiAnchor } from '../../hooks/useSuiAnchor';
 import { Calendar } from '../ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Button } from '../ui/button';
+import { DatePickerWithTime } from '../ui/date-picker-with-time';
 
 export const EventForge = () => {
   // Wallet and blockchain hooks
@@ -24,6 +25,7 @@ export const EventForge = () => {
     ticket_type: 'free', // 'free' or 'paid'
     price: 0 // Price in MIST (1 SUI = 1,000,000,000 MIST)
   });
+  const [priceDisplayValue, setPriceDisplayValue] = useState(''); // Separate state for display
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string, eventId?: string, txDigest?: string } | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -130,6 +132,15 @@ export const EventForge = () => {
         }
       }
 
+      // Debug: Log price data before submission
+      console.log('=== Event Creation DEBUG ===');
+      console.log('Ticket Type:', formData.ticket_type);
+      console.log('Form Data Price (MIST):', formData.price);
+      console.log('Price Display Value:', priceDisplayValue);
+      const finalPrice = formData.ticket_type === 'paid' ? formData.price : 0;
+      console.log('Final Price to Submit (MIST):', finalPrice);
+      console.log('Final Price in SUI:', finalPrice / 1000000000);
+
       // Create event
       const response = await fetch('http://localhost:8000/api/v1/events/create', {
         method: 'POST',
@@ -148,7 +159,7 @@ export const EventForge = () => {
           cover_image_path: coverImagePath,
           tags: formData.tags,
           ticket_type: formData.ticket_type,
-          price: formData.ticket_type === 'paid' ? formData.price : 0
+          price: finalPrice
         })
       });
 
@@ -328,24 +339,34 @@ export const EventForge = () => {
           {/* Price Input (Only if Paid) */}
           {formData.ticket_type === 'paid' && (
             <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-              <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">Ticket Price (MIST)</label>
+              <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">Ticket Price (SUI)</label>
               <div className="relative group">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#F59E0B] transition-colors">
                   <span className="font-bold text-xs">SUI</span>
                 </div>
                 <input
-                  type="number"
-                  min="0"
-                  step="1000000"
-                  placeholder="e.g. 100000000 (0.1 SUI)"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
-                  className="w-full h-12 bg-white/80 border border-amber-200 rounded-xl pl-12 pr-4 text-sm focus:outline-none focus:border-[#F59E0B]/50 transition-colors shadow-sm"
+                  type="text"
+                  placeholder="e.g. 0.0001 or 0.1"
+                  value={priceDisplayValue}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow only digits and at most one decimal point
+                    if (/^[\d.]*$/.test(value) && (value.match(/\./g) || []).length <= 1) {
+                      setPriceDisplayValue(value); // Keep the raw input
+                      const suiValue = value === '' || value === '.' ? 0 : parseFloat(value) || 0;
+                      const mistValue = Math.round(suiValue * 1000000000);
+                      setFormData({ ...formData, price: mistValue });
+                    }
+                  }}
+                  className="w-full h-12 bg-white/80 border border-amber-200 rounded-xl pl-12 pr-32 text-sm focus:outline-none focus:border-[#F59E0B]/50 transition-colors shadow-sm"
                 />
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400">
-                  {(formData.price / 1000000000).toFixed(4)} SUI
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-mono">
+                  {formData.price.toLocaleString()} MIST
                 </div>
               </div>
+              <p className="text-xs text-gray-500 ml-1">
+                💡 Enter SUI amount. 1 SUI = 1,000,000,000 MIST. Min: 0.0001 SUI
+              </p>
             </div>
           )}
 
@@ -605,78 +626,4 @@ const PreviewItem = ({ label, value, secure, multiline }: any) => {
   )
 }
 
-const DatePickerWithTime = ({ label, value, onChange }: { label: string, value: string, onChange: (val: string) => void }) => {
-  const [date, setDate] = React.useState<Date | undefined>(() => {
-    if (!value) return undefined;
-    const [d] = value.split(' ');
-    // Handle YYYY-MM-DD format
-    if (d) {
-      const [y, m, day] = d.split('-').map(Number);
-      return new Date(y, m - 1, day);
-    }
-    return undefined;
-  });
 
-  const [time, setTime] = React.useState(() => {
-    if (!value) return "12:00";
-    const parts = value.split(' ');
-    return parts.length > 1 ? parts[1] : "12:00";
-  });
-
-  const [isOpen, setIsOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    if (date && time) {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const d = String(date.getDate()).padStart(2, '0');
-      onChange(`${y}-${m}-${d} ${time}`);
-    }
-  }, [date, time]);
-
-  return (
-    <div className="space-y-2 relative">
-      <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">{label}</label>
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          variant={"outline"}
-          onClick={() => setIsOpen(!isOpen)}
-          className={cn(
-            "w-[240px] justify-start text-left font-normal bg-white/80 border-amber-200 hover:bg-amber-50 h-12 rounded-xl",
-            !date && "text-muted-foreground"
-          )}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4 text-amber-500" />
-          {date ? date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : <span>Pick a date</span>}
-        </Button>
-
-        <div className="relative w-32">
-          <input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className="w-full h-12 bg-white/80 border border-amber-200 rounded-xl px-3 text-sm focus:outline-none focus:border-[#F59E0B]/50 transition-colors shadow-sm text-center"
-          />
-        </div>
-      </div>
-
-      {isOpen && (
-        <div className="absolute top-[calc(100%+0.5rem)] left-0 z-50 bg-white border border-amber-200 rounded-xl shadow-xl p-2 animate-in fade-in zoom-in-95 duration-200">
-          <div
-            className="fixed inset-0 z-[-1]"
-            onClick={() => setIsOpen(false)}
-          />
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={(d) => { setDate(d); setIsOpen(false); }}
-            initialFocus
-            className="rounded-md border-0 bg-white"
-            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-          />
-        </div>
-      )}
-    </div>
-  );
-};

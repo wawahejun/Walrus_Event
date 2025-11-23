@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, UploadCloud, Lock, Unlock } from 'lucide-react';
 import { cn } from '../ui/utils';
+import { DatePickerWithTime } from '../ui/date-picker-with-time';
 
 interface EventEditModalProps {
     event: any;
@@ -14,8 +15,13 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({ event, isOpen, o
     const [formData, setFormData] = useState({
         title: '',
         location: '',
-        description: ''
+        description: '',
+        start_time: '',
+        end_time: '',
+        ticket_type: 'free',
+        price: 0
     });
+    const [priceInput, setPriceInput] = useState(''); // Local state for price input
     const [privacyLevel, setPrivacyLevel] = useState(50);
     const [coverImageBase64, setCoverImageBase64] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -25,10 +31,20 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({ event, isOpen, o
     useEffect(() => {
         if (event) {
             setFormData({
-                title: event.title,
-                location: event.location,
-                description: event.description
+                title: event.title || '',
+                location: event.location || '',
+                description: event.description || '',
+                start_time: event.start_time ? new Date(event.start_time).toISOString().slice(0, 16) : '',
+                end_time: event.end_time ? new Date(event.end_time).toISOString().slice(0, 16) : '',
+                ticket_type: event.ticket_type || 'free',
+                price: event.price || 0
             });
+            // Initialize price input
+            if (event.price) {
+                setPriceInput((event.price / 1000000000).toString());
+            } else {
+                setPriceInput('');
+            }
             setCoverImageBase64(event.image || event.cover_image);
             // Map privacy level string to number if needed, or default to 50
             setPrivacyLevel(event.privacy_level === 'zk-private' ? 100 : event.privacy_level === 'public' ? 0 : 50);
@@ -104,6 +120,10 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({ event, isOpen, o
                     title: formData.title,
                     description: formData.description,
                     location: formData.location,
+                    start_time: formData.start_time ? new Date(formData.start_time).toISOString() : undefined,
+                    end_time: formData.end_time ? new Date(formData.end_time).toISOString() : undefined,
+                    ticket_type: formData.ticket_type,
+                    price: formData.ticket_type === 'paid' ? formData.price : 0,
                     privacy_level: privacyLevelMap,
                     cover_image: coverImageBase64, // Keep existing base64 if present
                     cover_image_path: coverImagePath
@@ -187,6 +207,61 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({ event, isOpen, o
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 />
                             </div>
+
+                            {/* Date and Time */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <DatePickerWithTime
+                                        label="Start Time"
+                                        value={formData.start_time}
+                                        onChange={(v) => setFormData({ ...formData, start_time: v.replace(' ', 'T') })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <DatePickerWithTime
+                                        label="End Time"
+                                        value={formData.end_time}
+                                        onChange={(v) => setFormData({ ...formData, end_time: v.replace(' ', 'T') })}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Ticket Type & Price */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">Ticket Type</label>
+                                    <select
+                                        className="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 transition-colors"
+                                        value={formData.ticket_type}
+                                        onChange={(e) => setFormData({ ...formData, ticket_type: e.target.value })}
+                                    >
+                                        <option value="free">Free Ticket</option>
+                                        <option value="paid">Paid Ticket</option>
+                                    </select>
+                                </div>
+                                {formData.ticket_type === 'paid' && (
+                                    <div className="space-y-2">
+                                        <label className="text-xs uppercase tracking-wider text-gray-700 ml-1">Price (SUI)</label>
+                                        <input
+                                            type="text" // Use text to allow flexible input
+                                            className="w-full bg-white border border-amber-200 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 transition-colors"
+                                            value={priceInput}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                // Allow numbers and one decimal point
+                                                if (/^\d*\.?\d*$/.test(val)) {
+                                                    setPriceInput(val);
+                                                    const numVal = parseFloat(val);
+                                                    setFormData({ ...formData, price: isNaN(numVal) ? 0 : Math.round(numVal * 1000000000) });
+                                                }
+                                            }}
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Description */}
 
                             {/* Image Upload */}
                             <div className="space-y-2">

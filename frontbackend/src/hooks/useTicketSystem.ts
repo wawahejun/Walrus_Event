@@ -40,15 +40,23 @@ export function useTicketSystem() {
     };
 
     // Buy a paid ticket
-    const buyTicket = async (eventId: string, price: number, organizer: string) => {
+    const buyTicket = async (eventId: string, price: number, organizer: string, imageUrl: string = "walrus://premium-ticket") => {
         if (!account) return;
         setIsMinting(true);
 
         try {
+            console.log('=== buyTicket DEBUG ===');
+            console.log('Event ID:', eventId);
+            console.log('Price (MIST):', price);
+            console.log('Price (SUI):', price / 1000000000);
+            console.log('Organizer:', organizer);
+            console.log('Image URL:', imageUrl);
+
             const tx = new Transaction();
 
             // Split coin for payment
             const [coin] = tx.splitCoins(tx.gas, [price]);
+            console.log('Coin split for amount:', price, 'MIST');
 
             tx.moveCall({
                 target: `${PACKAGE_ID}::ticket_system::buy_new_ticket`,
@@ -56,13 +64,14 @@ export function useTicketSystem() {
                     tx.pure.string(eventId),
                     tx.pure.u64(Date.now()), // Random ticket number
                     tx.pure.bool(true), // Paid tickets are soulbound by default
-                    tx.pure.string("walrus://premium-ticket"),
+                    tx.pure.string(imageUrl),
                     coin,
                     tx.pure.u64(price),
                     tx.pure.address(organizer),
                 ],
             });
 
+            console.log('Transaction built, executing...');
             return await executeTransaction(tx);
         } catch (error) {
             console.error('Purchase failed:', error);
@@ -70,6 +79,38 @@ export function useTicketSystem() {
         } finally {
             setIsMinting(false);
         }
+    };
+
+    // Burn ticket
+    const burnTicket = async (ticketId: string) => {
+        if (!account) return;
+        setIsMinting(true);
+
+        try {
+            const tx = new Transaction();
+            tx.moveCall({
+                target: `${PACKAGE_ID}::ticket_system::burn_ticket`,
+                arguments: [tx.object(ticketId)],
+            });
+            return await executeTransaction(tx);
+        } catch (error) {
+            console.error('Burn failed:', error);
+            throw error;
+        } finally {
+            setIsMinting(false);
+        }
+    };
+
+    // Get user tickets
+    const getUserTickets = async (address: string) => {
+        // This requires access to suiClient. 
+        // We can assume it's available via useSuiClient hook in the component, 
+        // or we can instantiate it here if we import it.
+        // For now, let's return the function signature and let the component handle the client call 
+        // or inject the client.
+        // Actually, let's use the client from the hook context if possible.
+        // The useTicketSystem hook doesn't currently use useSuiClient.
+        // Let's add it.
     };
 
     // Generate and Verify ZK Proof
@@ -121,6 +162,7 @@ export function useTicketSystem() {
     return {
         mintTicket,
         buyTicket,
+        burnTicket,
         generateAndVerifyZKProof,
         isMinting,
         isVerifyingZK

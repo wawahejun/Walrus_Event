@@ -220,7 +220,9 @@ async def list_events(
                 "created_at": event.created_at.isoformat(),
                 "cover_image": event.cover_image,
                 "cover_image_path": event.cover_image_path,
-                "tags": event.tags or []
+                "tags": event.tags or [],
+                "price": event.price,  # Add price field
+                "ticket_type": event.ticket_type  # Add ticket_type field
             })
         
         return {
@@ -461,6 +463,10 @@ class UpdateEventRequest(BaseModel):
     cover_image: Optional[str] = None
     cover_image_path: Optional[str] = None
     tags: Optional[List[str]] = None
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    price: Optional[float] = None
+    ticket_type: Optional[str] = None
 
 
 @router.post("/create")
@@ -783,6 +789,13 @@ async def update_event(
 
         # 更新字段
         update_data = request.dict(exclude_unset=True, exclude_none=True)
+
+        # Handle timezone-aware datetimes by converting to naive UTC
+        if 'start_time' in update_data and update_data['start_time']:
+            update_data['start_time'] = update_data['start_time'].replace(tzinfo=None)
+        
+        if 'end_time' in update_data and update_data['end_time']:
+            update_data['end_time'] = update_data['end_time'].replace(tzinfo=None)
 
         # 转换为SQLAlchemy模型的update语句
         from sqlalchemy import update

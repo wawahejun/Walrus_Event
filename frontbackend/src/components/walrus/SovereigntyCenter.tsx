@@ -267,7 +267,10 @@ export const SovereigntyCenter = () => {
                       maxParticipants: event.max_participants,
                       tags: [event.event_type, 'Privacy'],
                       time: new Date(event.start_time).toLocaleTimeString(),
-                      organizer: event.organizer_id
+                      organizer: event.organizer_id,
+                      organizerAddress: event.organizer_id, // Add full address for transactions
+                      price: event.price || 0, // Add price field
+                      ticket_type: event.ticket_type // Add ticket type
                     };
                     setSelectedEvent(activity);
                     setShowDetailModal(true);
@@ -347,22 +350,8 @@ export const SovereigntyCenter = () => {
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         onUpdate={() => {
-          // Refresh events
-          const fetchUserEvents = async () => {
-            try {
-              const response = await fetch('http://localhost:8000/api/v1/events?limit=50');
-              const data = await response.json();
-              if (data.status === 'success' && data.events) {
-                // Filter for current user (mock logic since no real auth yet)
-                // In reality, backend would filter or we filter by wallet address
-                const myEvents = data.events.filter((e: any) => e.organizer_id && e.organizer_id.startsWith('user_'));
-                setUserEvents(myEvents);
-              }
-            } catch (error) {
-              console.error('Failed to refresh events:', error);
-            }
-          };
-          fetchUserEvents();
+          // Refresh events by triggering the useEffect dependency
+          setRefreshTrigger(prev => prev + 1);
         }}
       />
 

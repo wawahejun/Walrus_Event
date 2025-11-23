@@ -23,6 +23,7 @@ export interface Activity {
   difficulty?: 'Easy' | 'Medium' | 'Hard';
   rating?: number;
   reviews?: number;
+  organizerAddress?: string; // Full address for transactions
 }
 
 const mockActivityPool: Activity[] = [
@@ -219,22 +220,27 @@ const PrivacyDiscovery: React.FC = () => {
 
         if (data.status === 'success' && Array.isArray(data.events)) {
           // Transform backend events to Activity format
-          const transformedActivities: Activity[] = data.events.map((event: any) => ({
-            id: event.event_id,
-            title: event.title,
-            description: event.description,
-            image: event.cover_image_path || event.cover_image || `https://images.unsplash.com/photo-${Math.random().toString(36).substring(7)}?w=1280&h=720&fit=crop&auto=format&q=80`,
-            category: event.event_type,
-            date: new Date(event.start_time).toISOString().split('T')[0],
-            location: event.location || 'Virtual',
-            participants: event.participants_count || 0,
-            maxParticipants: event.max_participants,
-            tags: event.tags || [event.event_type, 'Privacy', 'Web3'],
-            recommendationScore: 85 + Math.floor(Math.random() * 15),
-            time: new Date(event.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-            duration: '2-3 Hours',
-            organizer: event.organizer_id ? event.organizer_id.substring(0, 10) + '...' : 'Unknown'
-          }));
+          const transformedActivities: Activity[] = data.events.map((event: any) => {
+            console.log(`Event "${event.title}" - price from backend:`, event.price, 'MIST');
+            return {
+              id: event.event_id,
+              title: event.title,
+              description: event.description,
+              image: event.cover_image_path || event.cover_image || `https://images.unsplash.com/photo-${Math.random().toString(36).substring(7)}?w=1280&h=720&fit=crop&auto=format&q=80`,
+              category: event.event_type,
+              date: new Date(event.start_time).toISOString().split('T')[0],
+              location: event.location || 'Virtual',
+              participants: event.participants_count || 0,
+              maxParticipants: event.max_participants,
+              tags: event.tags || [event.event_type, 'Privacy', 'Web3'],
+              recommendationScore: 85 + Math.floor(Math.random() * 15),
+              time: new Date(event.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+              duration: '2-3 Hours',
+              organizer: event.organizer_id ? event.organizer_id.substring(0, 10) + '...' : 'Unknown',
+              organizerAddress: event.organizer_id, // Full address
+              price: event.price || 0  // Add price field
+            };
+          });
 
           console.log("Transformed activities:", transformedActivities);
           setActivities(ensureVariedActivities(transformedActivities));
