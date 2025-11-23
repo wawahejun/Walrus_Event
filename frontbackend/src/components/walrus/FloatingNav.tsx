@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Home, Hammer, Compass, QrCode, Link as LinkIcon, Scale, Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '../ui/utils';
+import { useCurrentAccount } from '@mysten/dapp-kit';
 
 interface FloatingNavProps {
   activePage: string;
@@ -11,6 +12,7 @@ interface FloatingNavProps {
 export const FloatingNav: React.FC<FloatingNavProps> = ({ activePage, setActivePage }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const account = useCurrentAccount();
 
   const menuItems = [
     { id: 'landing', icon: Home, label: 'Landing' },
@@ -26,6 +28,16 @@ export const FloatingNav: React.FC<FloatingNavProps> = ({ activePage, setActiveP
     if (!isDragging) {
       setIsOpen(!isOpen);
     }
+  };
+
+  // Get display text for navigation sphere
+  const getDisplayText = () => {
+    if (activePage === 'landing') return 'HOME';
+    if (activePage === 'home') {
+      // Only show level if wallet is connected
+      return account ? 'Lvl.7' : 'HOME';
+    }
+    return activePage.substring(0, 3).toUpperCase();
   };
 
   return (
@@ -56,7 +68,7 @@ export const FloatingNav: React.FC<FloatingNavProps> = ({ activePage, setActiveP
             {/* Particle Effect Placeholder */}
             <div className="absolute inset-0 opacity-20 bg-gradient-to-tr from-transparent via-amber-400 to-transparent animate-spin-slow" />
             <div className="text-xs font-mono font-bold relative z-10">
-              {activePage === 'landing' ? 'HOME' : activePage === 'home' ? 'Lvl.7' : activePage.substring(0, 3).toUpperCase()}
+              {getDisplayText()}
             </div>
           </div>
         </motion.div>
