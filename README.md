@@ -1,5 +1,8 @@
 # Walrus Events: Privacy-Preserving Event Infrastructure for Web3
 
+**Hackathon Project**: This is a submission for the Walrus Haulout Hackathon
+**Demo Video**: [Watch our presentation](https://www.youtube.com/watch?v=Z1NEJ_4UzHk)
+
 ## 🌟 Vision
 
 Walrus Events explores privacy-preserving event infrastructure for Web3, aiming to provide user-controlled and verifiable event experiences.
