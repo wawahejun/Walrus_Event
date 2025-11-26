@@ -1,0 +1,17 @@
+{
+    "name": "walrus-events-contract-tests",
+    "version": "1.0.0",
+    "description": "Test suite for Walrus Events Sui smart contracts",
+    "type": "module",
+    "scripts": {
+        "test": "tsx seal-contract.test.ts",
+        "test:seal": "tsx seal-contract.test.ts",
+        "verify": "tsx seal-verify.test.ts"
+    },
+    "devDependencies": {
+        "@mysten/sui": "^1.0.0",
+        "@types/node": "^24.10.1",
+        "tsx": "^4.7.0",
+        "typescript": "^5.3.0"
+    }
+}
